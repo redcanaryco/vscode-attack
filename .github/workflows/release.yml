@@ -1,0 +1,85 @@
+# This workflow will bump the package version, build a new VSIX package, tag the latest commit, and create a new release
+
+name: release
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - "package.json"
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set_version.outputs.version }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Set up Git config
+      run:
+        git config --local user.email "action@github.com" && git config --local user.name ${{ github.actor }}
+    - name: Install Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: 10.x
+    - name: Install dependencies
+      run: npm ci
+    - name: Bump major version
+      id: bump_major
+      if: contains(github.event.head_commit.message, '#major')
+      run:
+        echo "PKG_VERSION=$(npm version major)" >> $GITHUB_ENV && git push
+    - name: Bump minor version
+      id: bump_minor
+      if: contains(steps.bump_major.outcome, 'skipped') && contains(github.event.head_commit.message, '#minor')
+      run:
+        echo "PKG_VERSION=$(npm version minor)" >> $GITHUB_ENV && git push
+    - name: Bump patch version
+      id: bump_patch
+      if: contains(steps.bump_major.outcome, 'skipped') && contains(steps.bump_minor.outcome, 'skipped')
+      run:
+        echo "PKG_VERSION=$(npm version patch)" >> $GITHUB_ENV && git push
+    - name: Set version output
+      id: set_version
+      run:
+        echo "::set-output name=version::${{ env.PKG_VERSION }}"
+    - name: Package VSIX
+      if: success()
+      uses: lannonbr/vsce-action@master
+      with:
+        args: "package -o vscode-attack-${{ env.PKG_VERSION }}.vsix"
+    - name: Upload VSIX as an artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: vscode-attack-${{ env.PKG_VERSION }}.vsix
+        path: vscode-attack-${{ env.PKG_VERSION }}.vsix
+        if-no-files-found: error
+  release:
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download VSIX package
+      id: download-vsix-package
+      uses: actions/download-artifact@v2
+      with:
+        name: vscode-attack-${{ needs.package.outputs.version }}.vsix
+    - name: Create release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ needs.package.outputs.version }}
+        release_name: ${{ needs.package.outputs.version }}
+        prerelease: true
+    - name: Upload release asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: vscode-attack-${{ needs.package.outputs.version }}.vsix
+        asset_name: vscode-attack-${{ needs.package.outputs.version }}.vsix
+        asset_content_type: application/zip

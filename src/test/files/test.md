@@ -1,0 +1,15 @@
+T1059
+T1059.001
+PowerShell
+certutil
+the
+T1086
+TA0002
+Defense Evasi
+T1064
+G0007
+APT28
+S0045
+ADVSTORESHELL
+M1047
+Audit

@@ -1,0 +1,159 @@
+{
+	"name": "vscode-attack",
+	"displayName": "vscode-att&ck",
+	"description": "Provides features for working with MITRE ATT&CK techniques",
+	"publisher": "rctgardner",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/rctgardner/vscode-attack/"
+	},
+	"version": "0.0.17",
+	"engines": {
+		"vscode": "^1.47.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"contributes": {
+		"commands": [
+			{
+				"command": "vscode-attack.search",
+				"title": "ATT&CK: Search ATT&CK Techniques"
+			}
+		],
+		"configuration": [
+			{
+				"title": "MITRE ATT&CK",
+				"properties": {
+					"vscode-attack.debug": {
+						"type": "boolean",
+						"default": false,
+						"description": "Send needlessly verbose debug messages to the MITRE ATT&CK output channel. Useful for identifying software bugs"
+					},
+					"vscode-attack.description": {
+						"type": "string",
+						"description": "Specifies the type of description to display in the hover message",
+						"default": "short",
+						"enum": [
+							"short",
+							"long",
+							"link"
+						],
+						"enumDescriptions": [
+							"Display just the first line of the technique description",
+							"Display the entire technique description",
+							"Display just the source link of the technique"
+						]
+					},
+					"vscode-attack.completionFormat": {
+						"type": "string",
+						"description": "Specifies the format of inserted text",
+						"default": "id",
+						"enum": [
+							"id",
+							"name",
+							"fullname",
+							"id-name",
+							"id-fullname"
+						],
+						"enumDescriptions": [
+							"Insert just the ID of the completed item (e.g. 'T1059.001')",
+							"Insert just the name of the completed item (e.g. 'PowerShell')",
+							"Insert the name and parent name if the item is a subtechnique (e.g. 'Command and Scripting Interpreter: PowerShell')",
+							"Insert both the ID and the name of the completed item (e.g. 'T1059.001 PowerShell')",
+							"Insert the ID, name, and parent name if the item is a subtechnique (e.g. 'T1059.001 Command and Scripting Interpreter: PowerShell')"
+						]
+					},
+					"vscode-attack.applicableFiles": {
+						"markdownDescription": "Array of document filters to apply features to (requires restart). See: [DocumentFilter](https://code.visualstudio.com/api/references/vscode-api#DocumentFilter)",
+						"scope": "window",
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"pattern": {
+									"type": "string"
+								},
+								"language": {
+									"type": "string"
+								},
+								"scheme": {
+									"type": "string",
+									"enum": [
+										"untitled",
+										"file"
+									]
+								}
+							}
+						},
+						"additionalItems": false,
+						"uniqueItems": true,
+						"default": [
+							{
+								"scheme": "file",
+								"language": "markdown"
+							},
+							{
+								"scheme": "file",
+								"language": "yaml"
+							}
+						]
+					},
+					"vscode-attack.groups": {
+						"type": "boolean",
+						"default": false,
+						"description": "Enable code completion for Groups"
+					},
+					"vscode-attack.mitigations": {
+						"type": "boolean",
+						"default": false,
+						"description": "Enable code completion for Mitigations"
+					},
+					"vscode-attack.software": {
+						"type": "boolean",
+						"default": false,
+						"description": "Enable code completion for Software"
+					},
+					"vscode-attack.tactics": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable code completion for Tactics"
+					},
+					"vscode-attack.techniques": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable code completion for Techniques"
+					}
+				}
+			}
+		]
+	},
+	"activationEvents": [
+		"onStartupFinished"
+	],
+	"main": "./out/extension.js",
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"lint": "eslint src --ext ts",
+		"watch": "tsc -watch -p ./",
+		"pretest": "npm run compile && npm run lint",
+		"test": "node ./out/test/runTest.js"
+	},
+	"devDependencies": {
+		"@types/glob": "^7.1.1",
+		"@types/mocha": "^7.0.2",
+		"@types/node": "^13.11.0",
+		"@types/vscode": "^1.47.0",
+		"@typescript-eslint/eslint-plugin": "^2.30.0",
+		"@typescript-eslint/parser": "^2.30.0",
+		"eslint": "^6.8.0",
+		"glob": "^7.1.6",
+		"mocha": "^7.1.2",
+		"typescript": "^3.8.3",
+		"vscode-test": "^1.3.0"
+	},
+	"dependencies": {
+		"markdown-it": "^11.0.1"
+	}
+}
