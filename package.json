@@ -7,7 +7,7 @@
 		"type": "git",
 		"url": "https://github.com/rctgardner/vscode-attack/"
 	},
-	"version": "0.0.17",
+	"version": "0.1.0",
 	"engines": {
 		"vscode": "^1.47.0"
 	},

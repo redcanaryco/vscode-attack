@@ -1,7 +1,7 @@
 # MITRE ATT&CK for Visual Studio Code
 
-![This was supposed to be the build badge](https://github.com/redcanaryco/vscode-attack/workflows/build/badge.svg)
-![This was supposed to be the release badge](https://github.com/redcanaryco/vscode-attack/workflows/release/badge.svg)
+![This was supposed to be a badge](https://github.com/rctgardner/vscode-attack/workflows/build/badge.svg)
+![This was supposed to be a badge](https://github.com/rctgardner/vscode-attack/workflows/release/badge.svg)
 
 Provides features for working with MITRE ATT&CK techniques.
 
@@ -23,7 +23,7 @@ Like code completion, hovers are supported for Group, Mitigation, and Software I
 
 This extension provides a command that allows searching for techniques by their technique IDs, names, or interesting keywords found in the descriptions.
 
-For example, searching for the keyword `certutil`, which is not present in any technique name, will yield a result for `T1140 Deobfuscate/Decode Files or Information`, because there is a reference to it in the description. Any matching techniques reveal an HTML-based webpanel with results similar to those found in the hover results.
+For example, searching for the keyword `certutil`, which is not present in any technique name, will yield a result for `T1140 Deobfuscate/Decode Files or Information`, because there is a reference to it in the description. Any matching techniques reveal webpanel with results similar to those found in the hover results.
 
 ## Miscellaneous
 
@@ -43,7 +43,7 @@ Certain aspects of this extension can be configured using the Visual Studio Code
 
 #### Applicable Files
 
-By default, this extension applies to Markdown and YAML files, but this setting is configurable using the `vscode-attack.applicableFiles` setting.
+By default, this extension applies to saved Markdown and YAML files, but this setting is configurable using the `vscode-attack.applicableFiles` setting.
 
 Users can add [DocumentFilters](https://code.visualstudio.com/api/references/vscode-api#DocumentFilter) to register new document types.
 
@@ -53,8 +53,6 @@ For example, if a user wants this extension to apply to all Python scripts, all 
 { "pattern": "*_reports.txt" },
 { "scheme": "untitled" }
 ```
-
-If this setting gets changed, the feature providers will be disposed of and regenerated to align with the newly applicable document types - no IDE restart necessary!
 
 #### Completion Format
 
