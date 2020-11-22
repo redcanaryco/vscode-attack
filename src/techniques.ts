@@ -206,6 +206,7 @@ export class TechniqueHoverProvider implements vscode.HoverProvider {
 }
 
 export class TechniqueCompletionProvider implements vscode.CompletionItemProvider {
+    private maxDescriptionItems: number = 3;
     public techniques: Array<Technique> = new Array<Technique>();
     public revokedTechniques: Array<Technique> = new Array<Technique>();
 
@@ -289,6 +290,11 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
                                 if (t.deprecated || t.revoked) { item.tags = [vscode.CompletionItemTag.Deprecated]; }
                                 return item;
                             });
+                            // if we have found too many matching techniques, then this term is too common, and
+                            // ... we should assume all completionItems we generated are unrelated to the requested term
+                            if (completionItems.length > this.maxDescriptionItems) {
+                                resolve(undefined);
+                            }
                         }
                     }
                 }

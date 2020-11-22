@@ -481,6 +481,22 @@ describe('Completion Providers', function () {
 			done();
 		});
 	});
+	it('should not provide completion items for lengthy terms commonly found in technique descriptions', function (done) {
+		// this term is not a technique ID or in any technique name, and it is long enough to trip
+		// the 'lengthy term' heuristic, but it is found in many technique descriptions, so
+		// it could return a lot of items when the user doesn't want them
+		const term: string = 'false';
+		const position: vscode.Position = new vscode.Position(15, term.length);
+		vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position).then((results: any) => {
+			assert.ok(results instanceof vscode.CompletionList);
+			// filter out results from other providers
+			let techniqueItems: Array<vscode.CompletionItem> = results.items.filter((item) => {
+				return item instanceof vscode.CompletionItem && item.label.includes('technique description');
+			});
+			assert.strictEqual(techniqueItems.length, 0);
+			done();
+		});
+	});
 	it('should provide all completion items for short terms and let VSCode filter them', function (done) {
 		const term: string = 'the';
 		const position: vscode.Position = new vscode.Position(4, term.length);
