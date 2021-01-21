@@ -2,39 +2,6 @@ import * as vscode from 'vscode';
 import { completionFormat, configSection, debug } from './configuration';
 import { minTermLength, output, groupRegex } from './helpers';
 
-
-/*
-    Build a completion item out of a group
-*/
-function buildCompletionItem(label: string, group: Group): vscode.CompletionItem {
-    let completionItem: vscode.CompletionItem = new vscode.CompletionItem(label, vscode.CompletionItemKind.Value);
-    let insertionText: string = buildInsertionText(group);
-    completionItem.detail = insertionText;
-    completionItem.insertText = insertionText;
-    return completionItem;
-}
-
-/*
-    Counterpart to buildTechniqueDescription ... but for groups
-    TODO: Generalize this across object types
-*/
-function buildGroupDescription(group: Group, descriptionType: string|undefined = undefined): vscode.MarkdownString {
-    if (descriptionType === undefined) { descriptionType = vscode.workspace.getConfiguration(configSection).get('description'); }
-    let mdBuilder: vscode.MarkdownString = new vscode.MarkdownString(undefined);
-    // title
-    mdBuilder.appendMarkdown(`### ${group.name}\n`);
-    // source link
-	if (group.url !== undefined) { mdBuilder.appendMarkdown(`[Source Link](${group.url})\n\n`); }
-    else { mdBuilder.appendMarkdown(`No source link available\n\n`); }
-    // aliases
-	if (group.aliases?.length === 1) { mdBuilder.appendMarkdown(`**Alias**: ${group.aliases.pop()}\n\n`); }
-	else if (group.aliases?.length > 1) { mdBuilder.appendMarkdown(`**Aliases**: ${group.aliases.join(', ')}\n\n`); }
-    // description
-	if (descriptionType && descriptionType === 'long') { mdBuilder.appendMarkdown(group.description.long); }
-	else if (descriptionType && descriptionType === 'short') { mdBuilder.appendMarkdown(group.description.short); }
-    return mdBuilder;
-}
-
 /*
     Build a completion item's insertion text based on settings
     TODO: Generalize this across object types
@@ -50,15 +17,47 @@ function buildInsertionText(group: Group): string {
     return insertionText;
 }
 
+/*
+    Build a completion item out of a group
+*/
+function buildCompletionItem(label: string, group: Group): vscode.CompletionItem {
+    const completionItem: vscode.CompletionItem = new vscode.CompletionItem(label, vscode.CompletionItemKind.Value);
+    const insertionText: string = buildInsertionText(group);
+    completionItem.detail = insertionText;
+    completionItem.insertText = insertionText;
+    return completionItem;
+}
+
+/*
+    Counterpart to buildTechniqueDescription ... but for groups
+    TODO: Generalize this across object types
+*/
+function buildGroupDescription(group: Group, descriptionType: string|undefined = undefined): vscode.MarkdownString {
+    if (descriptionType === undefined) { descriptionType = vscode.workspace.getConfiguration(configSection).get('description'); }
+    const mdBuilder: vscode.MarkdownString = new vscode.MarkdownString(undefined);
+    // title
+    mdBuilder.appendMarkdown(`### ${group.name}\n`);
+    // source link
+    if (group.url !== undefined) { mdBuilder.appendMarkdown(`[Source Link](${group.url})\n\n`); }
+    else { mdBuilder.appendMarkdown(`No source link available\n\n`); }
+    // aliases
+    if (group.aliases?.length === 1) { mdBuilder.appendMarkdown(`**Alias**: ${group.aliases.pop()}\n\n`); }
+    else if (group.aliases?.length > 1) { mdBuilder.appendMarkdown(`**Aliases**: ${group.aliases.join(', ')}\n\n`); }
+    // description
+    if (descriptionType && descriptionType === 'long') { mdBuilder.appendMarkdown(group.description.long); }
+    else if (descriptionType && descriptionType === 'short') { mdBuilder.appendMarkdown(group.description.short); }
+    return mdBuilder;
+}
+
 export async function init(attackData: AttackMap): Promise<Array<Group>> {
     return new Promise((resolve) => {
         let groups: Array<Group> = new Array<Group>();
         groups = attackData.objects.filter((item: AttackObject) => {
             return item.type === 'intrusion-set';
         }).map<Group>((item: AttackObject) => {
-            let description: string = item.description !== undefined ? item.description : 'No description available.';
-            let aliases: Array<string> = item.aliases !== undefined ? item.aliases : new Array<string>();
-            let group: Group = {
+            const description: string = item.description !== undefined ? item.description : 'No description available.';
+            const aliases: Array<string> = item.aliases !== undefined ? item.aliases : new Array<string>();
+            const group: Group = {
                 aliases: aliases,
                 description: {
                     short: description.split("\n")[0],
@@ -82,74 +81,62 @@ export async function init(attackData: AttackMap): Promise<Array<Group>> {
     });
 }
 
-export function register(filters: vscode.DocumentSelector, groups: Array<Group>): Array<vscode.Disposable> {
-    // hover provider
-    let groupHovers: GroupHoverProvider = new GroupHoverProvider();
-    let groupHoverDisposable: vscode.Disposable = vscode.languages.registerHoverProvider(filters, groupHovers);
-    groupHovers.groups = groups;
-    // completion provider
-    let groupCompletions: GroupCompletionProvider = new GroupCompletionProvider();
-    groupCompletions.groups = groups;
-    let groupCompletionDisposable: vscode.Disposable = vscode.languages.registerCompletionItemProvider(filters, groupCompletions);
-    return [groupHoverDisposable, groupCompletionDisposable];
-}
-
 export class GroupHoverProvider implements vscode.HoverProvider {
     public groups: Array<Group> = new Array<Group>();
 
     public provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
-		try {
-			return new Promise((resolve) => {
-				token.onCancellationRequested(() => {
-					// if this process is cancelled, just return nothing
-					resolve(undefined);
-				});
-				let hover: vscode.Hover | undefined = undefined;
+        try {
+            return new Promise((resolve) => {
+                token.onCancellationRequested(() => {
+                    // if this process is cancelled, just return nothing
+                    resolve(undefined);
+                });
+                let hover: vscode.Hover | undefined = undefined;
                 let hoverRange: vscode.Range | undefined = undefined;
                 hoverRange = document.getWordRangeAtPosition(position, groupRegex);
-				if (hoverRange !== undefined) {
-					let hoverTerm: string = document.getText(hoverRange);
+                if (hoverRange !== undefined) {
+                    const hoverTerm: string = document.getText(hoverRange);
                     if (debug) { output.appendLine(`provideHover: Hover term: ${hoverTerm}`); }
-                    let currentGroup: Group | undefined = this.groups.find((g: Group) => { return g.id === hoverTerm; });
+                    const currentGroup: Group | undefined = this.groups.find((g: Group) => { return g.id === hoverTerm; });
                     if (currentGroup !== undefined) {
                         hover = new vscode.Hover(buildGroupDescription(currentGroup), hoverRange);
                     }
                 }
-				resolve(hover);
-			});
-		} catch (error) {
-			output.appendLine(`provideHover error: ${error}`);
-		}
-	}
+                resolve(hover);
+            });
+        } catch (error) {
+            output.appendLine(`provideHover error: ${error}`);
+        }
+    }
 }
 
 export class GroupCompletionProvider implements vscode.CompletionItemProvider {
     public groups: Array<Group> = new Array<Group>();
 
-	public provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
+    public provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
         try {
             return new Promise((resolve) => {
-				token.onCancellationRequested(() => {
-					// if this process is cancelled, just return nothing
-					resolve(undefined);
+                token.onCancellationRequested(() => {
+                    // if this process is cancelled, just return nothing
+                    resolve(undefined);
                 });
                 let completionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
-                let dbgMsg: string = '';
-                let completionRange: vscode.Range | undefined = document.getWordRangeAtPosition(position);
+                let dbgMsg = '';
+                const completionRange: vscode.Range | undefined = document.getWordRangeAtPosition(position);
                 if (completionRange === undefined) {
                     dbgMsg = `GroupCompletionProvider: No completion item range provided.`;
                     console.log(dbgMsg);
                     if (debug) { output.appendLine(dbgMsg); }
                 }
                 else {
-                    let completionTerm: string = document.getText(completionRange);
+                    const completionTerm: string = document.getText(completionRange);
                     // only return everything if this is a "long" term
                     if (completionTerm.length >= minTermLength) {
                         dbgMsg = `GroupCompletionProvider: Completion term: ${completionTerm}`;
                         console.log(dbgMsg);
                         if (debug) { output.appendLine(dbgMsg); }
                         // if the user is trying to complete something that matches an exact group ID, just return that one item
-                        let group: Group | undefined = this.groups.find((g: Group) => { return g.id === completionTerm.toUpperCase(); });
+                        const group: Group | undefined = this.groups.find((g: Group) => { return g.id === completionTerm.toUpperCase(); });
                         if (group !== undefined) {
                             dbgMsg = `GroupCompletionProvider: Found exact technique ID '${group.id}'`;
                             console.log(dbgMsg);
@@ -158,7 +145,7 @@ export class GroupCompletionProvider implements vscode.CompletionItemProvider {
                         }
                         else {
                             // if the user is trying to complete a group by name
-                            let possibleGroups: Array<Group> | undefined = this.groups.filter((g: Group) => {
+                            const possibleGroups: Array<Group> | undefined = this.groups.filter((g: Group) => {
                                 return g.name.toLowerCase().includes(completionTerm.toLowerCase());
                             });
                             if (possibleGroups !== undefined) {
@@ -180,12 +167,12 @@ export class GroupCompletionProvider implements vscode.CompletionItemProvider {
         try {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
-					// if this process is cancelled, just return nothing
-					resolve(undefined);
+                    // if this process is cancelled, just return nothing
+                    resolve(undefined);
                 });
                 // console.log(`GroupCompletionProvider: Received completion item with label: ${item.label}`);
                 item.keepWhitespace = true;
-                let group: Group | undefined = this.groups.find((g: Group) => {
+                const group: Group | undefined = this.groups.find((g: Group) => {
                     return (g.id === item.label) || (g.name === item.label);
                 });
                 if (group !== undefined) {
@@ -197,4 +184,16 @@ export class GroupCompletionProvider implements vscode.CompletionItemProvider {
             output.appendLine(`GroupCompletionProvider error: ${error}`);
         }
     }
+}
+
+export function register(filters: vscode.DocumentSelector, groups: Array<Group>): Array<vscode.Disposable> {
+    // hover provider
+    const groupHovers: GroupHoverProvider = new GroupHoverProvider();
+    const groupHoverDisposable: vscode.Disposable = vscode.languages.registerHoverProvider(filters, groupHovers);
+    groupHovers.groups = groups;
+    // completion provider
+    const groupCompletions: GroupCompletionProvider = new GroupCompletionProvider();
+    groupCompletions.groups = groups;
+    const groupCompletionDisposable: vscode.Disposable = vscode.languages.registerCompletionItemProvider(filters, groupCompletions);
+    return [groupHoverDisposable, groupCompletionDisposable];
 }

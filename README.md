@@ -1,5 +1,8 @@
 # MITRE ATT&CK for Visual Studio Code
 
+<!-- ![build badge](https://github.com/redcanaryco/vscode-attack/workflows/build/badge.svg)
+![release badge](https://github.com/redcanaryco/vscode-attack/workflows/release/badge.svg) -->
+
 Provides features for working with MITRE ATT&CK techniques.
 
 ## Editor Features
