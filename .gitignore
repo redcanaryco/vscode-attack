@@ -1,6 +1,5 @@
 node_modules
 out/
-.vscode/
 .vscodeignore.json
 .vscodeignore
 *.vsix
