@@ -48,6 +48,7 @@ By default, this extension applies to saved Markdown and YAML files, but this se
 Users can add [DocumentFilters](https://code.visualstudio.com/api/references/vscode-api#DocumentFilter) to register new document types.
 
 For example, if a user wants this extension to apply to all Python scripts, all `_reports.txt` files, and unsaved files, add the following filters:
+
 ```txt
 { "language": "python" },
 { "pattern": "*_reports.txt" },
