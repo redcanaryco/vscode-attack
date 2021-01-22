@@ -2,7 +2,7 @@
     "name": "vscode-attack",
     "displayName": "VSCode ATT&CK",
     "description": "Provides features for working with MITRE ATT&CK techniques",
-    "publisher": "redcanaryco",
+    "publisher": "redcanary",
     "icon": "images/logo.png",
     "repository": {
         "type": "git",
