@@ -5,6 +5,8 @@
 
 Provides features for working with MITRE ATT&CK techniques.
 
+<!-- ![ATT&CK Logo](https://attack.mitre.org/theme/images/MITRE_ATTACK_logo_Lockup-white-transparent.png) -->
+
 ## Editor Features
 
 ### Code Completion

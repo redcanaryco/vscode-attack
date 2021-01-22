@@ -1,8 +1,9 @@
 {
     "name": "vscode-attack",
-    "displayName": "vscode-att&ck",
+    "displayName": "VSCode ATT&CK",
     "description": "Provides features for working with MITRE ATT&CK techniques",
-    "publisher": "rctgardner",
+    "publisher": "redcanaryco",
+    "icon": "images/logo.png",
     "repository": {
         "type": "git",
         "url": "https://github.com/redcanaryco/vscode-attack/"
