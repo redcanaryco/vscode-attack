@@ -3,7 +3,7 @@
 <!-- ![build badge](https://github.com/redcanaryco/vscode-attack/workflows/build/badge.svg)
 ![release badge](https://github.com/redcanaryco/vscode-attack/workflows/release/badge.svg) -->
 
-Provides features for working with MITRE ATT&CK techniques.
+Provides features for working with [MITRE ATT&CK](https://attack.mitre.org/) techniques.
 
 <!-- ![ATT&CK Logo](https://attack.mitre.org/theme/images/MITRE_ATTACK_logo_Lockup-white-transparent.png) -->
 
