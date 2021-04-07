@@ -14,6 +14,9 @@ function buildInsertionText(tool: Software): string {
     else if (completionFormat === 'name' || completionFormat === 'fullname') {
         insertionText = tool.name;
     }
+    else if (completionFormat === 'link') {
+        insertionText = tool.url;
+    }
     return insertionText;
 }
 
