@@ -208,28 +208,24 @@ describe('Extension', function () {
 });
 
 describe('General Settings', function () {
-    // bumping timeout on this due to config updates in afterEach()
-    // ... potentially taking a long time
-    this.timeout(15000);
-
     let ext: vscode.Extension<unknown> | undefined;
     let modifiedConfig: vscode.WorkspaceConfiguration;
-    const defaultFiles: Array<Record<string, unknown>> = [{ "scheme": "file", "language": "markdown" }, { "scheme": "file", "language": "yaml" }];
     const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
     const testUri: vscode.Uri = vscode.Uri.file(testPath);
 
-    beforeEach(() => {
+    before(async function () {
         ignoreConsoleLogs();
         ext = vscode.extensions.getExtension(extensionID);
+        await ext?.activate();
+        exports = ext?.exports;
         modifiedConfig = vscode.workspace.getConfiguration(configSection);
     });
-    afterEach(async () => {
-        await setTestConfig('debug', false, modifiedConfig);
-        await setTestConfig('description', 'short', modifiedConfig);
-        await setTestConfig('completionFormat', 'id', modifiedConfig);
-        await setTestConfig('applicableFiles', defaultFiles, modifiedConfig);
-        resetState();
+    after(async function () {
+        await setTestConfig('debug', undefined, modifiedConfig);
+        await setTestConfig('description', undefined, modifiedConfig);
     });
+    beforeEach(ignoreConsoleLogs);
+    afterEach(resetState);
     it.skip('debug: should enable debug logging when set', async function () {
         await setTestConfig('debug', true, modifiedConfig);
         ext?.activate().then(() => {
