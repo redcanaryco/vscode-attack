@@ -224,10 +224,10 @@ describe('General Settings', function () {
         modifiedConfig = vscode.workspace.getConfiguration(configSection);
     });
     afterEach(async () => {
-        await modifiedConfig.update('debug', false, vscode.ConfigurationTarget.Global);
-        await modifiedConfig.update('description', 'short', vscode.ConfigurationTarget.Global);
-        await modifiedConfig.update('completionFormat', 'id', vscode.ConfigurationTarget.Global);
-        await modifiedConfig.update('applicableFiles', defaultFiles, vscode.ConfigurationTarget.Global);
+        await setTestConfig('debug', false, modifiedConfig);
+        await setTestConfig('description', 'short', modifiedConfig);
+        await setTestConfig('completionFormat', 'id', modifiedConfig);
+        await setTestConfig('applicableFiles', defaultFiles, modifiedConfig);
         resetState();
     });
     it.skip('debug: should enable debug logging when set', async function () {

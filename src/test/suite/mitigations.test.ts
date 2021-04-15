@@ -16,10 +16,10 @@ describe('Mitigations', function () {
         ext = vscode.extensions.getExtension(extensionID);
         await ext?.activate();
         modifiedConfig = vscode.workspace.getConfiguration(configSection);
-        await modifiedConfig.update('mitigations', true, vscode.ConfigurationTarget.Global);
+        await setTestConfig('mitigations', true, modifiedConfig);
     });
     after(async function () {
-        await modifiedConfig.update('mitigations', false, vscode.ConfigurationTarget.Global);
+        await setTestConfig('mitigations', undefined, modifiedConfig);
     });
     beforeEach(ignoreConsoleLogs);
     afterEach(resetState);

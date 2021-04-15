@@ -17,10 +17,10 @@ describe('Software', function () {
         await ext?.activate();
         exports = ext?.exports;
         modifiedConfig = vscode.workspace.getConfiguration(configSection);
-        await modifiedConfig.update('software', true, vscode.ConfigurationTarget.Global);
+        await setTestConfig('software', true, modifiedConfig);
     });
     after(async function () {
-        await modifiedConfig.update('software', false, vscode.ConfigurationTarget.Global);
+        await setTestConfig('software', undefined, modifiedConfig);
     });
     beforeEach(ignoreConsoleLogs);
     afterEach(resetState);

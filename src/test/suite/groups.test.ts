@@ -16,10 +16,10 @@ describe('Groups', function () {
         ext = vscode.extensions.getExtension(extensionID);
         await ext?.activate();
         exports = ext?.exports;
-        await modifiedConfig.update('groups', true, vscode.ConfigurationTarget.Global);
+        await setTestConfig('groups', true, modifiedConfig);
     });
     after(async function () {
-        await modifiedConfig.update('groups', false, vscode.ConfigurationTarget.Global);
+        await setTestConfig('groups', undefined, modifiedConfig);
     });
     beforeEach(ignoreConsoleLogs);
     afterEach(resetState);
