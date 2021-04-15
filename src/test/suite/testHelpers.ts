@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 
 
 export const configSection = 'vscode-attack';
-export const extensionID = 'redcanaryco.vscode-attack';
+export const extensionID = 'redcanary.vscode-attack';
 // some tests may want to suppress log messages for cleaner output, so save the log function for restoration later
 export const consoleLogger = console.log;
 export let fileArtifacts: string[] = [];
