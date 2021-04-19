@@ -20,6 +20,10 @@
             {
                 "command": "vscode-attack.search",
                 "title": "ATT&CK: Search ATT&CK Techniques"
+            },
+            {
+                "command": "vscode-attack.insertLink",
+                "title": "ATT&CK: Insert link to ATT&CK website"
             }
         ],
         "configuration": [

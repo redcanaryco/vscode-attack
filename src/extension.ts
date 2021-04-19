@@ -10,6 +10,7 @@ import { init as initSoftware, register as registerSoftware } from './software';
 import { init as initTactics, register as registerTactics } from './tactics';
 import { init as initTechniques, register as registerTechniques } from './techniques';
 import { search } from './search';
+import { insertLink } from './insertLink';
 
 
 // track the providers we have so we can recreate them in case applicableFiles gets updated or they get toggled
@@ -179,6 +180,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
         }));
         // commands
         context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.search', () => { search(techniques); }));
+        context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.insertLink', () => {
+            const editor: vscode.TextEditor|undefined = vscode.window.activeTextEditor;
+            insertLink(editor, groups, mitigations, software, tactics, techniques);
+        }));
         // window
         const statusBarItem: vscode.StatusBarItem|undefined = await createStatusBar(context.globalStorageUri.fsPath);
         if (statusBarItem !== undefined) {

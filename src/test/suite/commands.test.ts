@@ -1,10 +1,11 @@
 import * as assert from 'assert';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import * as search from '../../search';
 import { disposables, extensionID, ignoreConsoleLogs, resetState } from '../suite/testHelpers';
 
 
-describe('Search Command', function () {
+describe('Command: search', function () {
     const searchCommand = 'vscode-attack.search';
     let ext: vscode.Extension<unknown> | undefined;
 
@@ -68,5 +69,46 @@ describe('Search Command', function () {
             panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
             assert.strictEqual(panels.length, 0);
         });
+    });
+});
+
+describe('Command: insertLink', function () {
+    const insertLinkCommand = 'vscode-attack.insertLink';
+    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
+    const testUri: vscode.Uri = vscode.Uri.file(testPath);
+    let ext: vscode.Extension<unknown> | undefined;
+
+    before(async function () {
+        ext = vscode.extensions.getExtension(extensionID);
+        await ext?.activate();
+        exports = ext?.exports;
+    });
+    beforeEach(ignoreConsoleLogs);
+    afterEach(resetState);
+    it('insert link command should exist', async function () {
+        const commands: Array<string> = await vscode.commands.getCommands(true);
+        assert.ok(commands.includes(insertLinkCommand), `No '${insertLinkCommand}' exists.`);
+    });
+    it.skip('should insert a link for markdown text', async function () {
+        const tid = 'T1059.001';
+        const expectedLink = 'https://attack.mitre.org/techniques/T1059/001';
+        const editor: vscode.TextEditor = await vscode.window.showTextDocument(testUri);
+        const techniques: Array<Technique> = [
+            {
+                deprecated: false,
+                description: {
+                    short: 'test description',
+                    long: 'longer test description'
+                },
+                id: tid,
+                name: 'test',
+                parent: undefined,
+                revoked: false,
+                subtechnique: true,
+                tactics: [],
+                url: expectedLink,
+            }
+        ];
+        vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: techniques});
     });
 });
