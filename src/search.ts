@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { debug } from './configuration';
-import { getCurrentTechniques, getRevokedTechniques, output } from './helpers';
+import { getCurrentTechniques, getRevokedTechniques, log, minTermLength } from './helpers';
 import markdownit from 'markdown-it';
 const md = markdownit('commonmark');
 
@@ -43,7 +43,7 @@ function buildSearchResult(technique: Technique): vscode.MarkdownString {
     Build the webview panel
 */
 function buildPanel(technique: Technique): vscode.WebviewPanel {
-    if (debug) { output.appendLine(`search: Opening webview for ${technique.name} (${technique.id})`); }
+    if (debug) { log(`search: Opening webview for ${technique.name} (${technique.id})`); }
     // create a webview which displays the relevant data as markdown
     const panel: vscode.WebviewPanel = vscode.window.createWebviewPanel('vscode-attack', `${technique.id}: ${technique.name}`, vscode.ViewColumn.One, {});
     panel.webview.html = md.render(buildSearchResult(technique).value);
@@ -55,9 +55,8 @@ function buildPanel(technique: Technique): vscode.WebviewPanel {
     Search the list of ATT&CK objects for whatever the user is looking for
 */
 export async function search(techniques: Array<Technique>, input: string|undefined = undefined): Promise<Array<vscode.WebviewPanel>> {
-    const minTermLength = 4;
     let panels: Array<vscode.WebviewPanel> = new Array<vscode.WebviewPanel>();
-    if (debug) { output.appendLine(`search: Prompting user for a search term`); }
+    if (debug) { log('Prompting user for a search term'); }
     if (input === undefined) {
         const inBoxOpt: vscode.InputBoxOptions = {
             placeHolder: 'Technique Name or ID',
@@ -67,8 +66,7 @@ export async function search(techniques: Array<Technique>, input: string|undefin
     }
     // if the user cancels the prompt there may be no input to search
     if (input === undefined || input.length < minTermLength) {
-        output.appendLine('ATT&CK: No input provided. Cancelling search.');
-        console.log('ATT&CK: No input provided. Cancelling search.');
+        log('No input provided. Cancelling search.');
     }
     else {
         const revokedTechniques: Array<Technique> = getRevokedTechniques(techniques);
@@ -86,19 +84,18 @@ export async function search(techniques: Array<Technique>, input: string|undefin
         }
         // at this point, if a panel hasn't been created yet, then let's search every technique description
         if (panels.length === 0 && input !== undefined) {
-            console.log(`Search term exceeds ${minTermLength} characters: ${input}`);
+            if (debug) { log(`Search term exceeds ${minTermLength} characters: ${input}`); }
             panels = currentTechniques.filter((t: Technique) => {
                 return (t.description.long.includes(`${input}`));
             }).map<vscode.WebviewPanel>((t: Technique) => { return buildPanel(t); });
         }
         // ... and at this point, if there's still no panel, then let's just give up
         if (panels.length === 0) {
-            console.log(`search: Could not find technique matching '${input}'`);
+            if (debug) { log(`Could not find technique matching '${input}'`); }
             vscode.window.showErrorMessage(`ATT&CK: Could not find technique matching '${input}'`);
         }
         else {
-            console.log(`search: Prompt returned '${input}'`);
-            if (debug) { output.appendLine(`search: Prompt returned ${input}`); }
+            if (debug) { log(`Prompt returned ${input}`); }
         }
     }
     return panels;

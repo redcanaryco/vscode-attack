@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { completionFormat, configSection, debug } from './configuration';
-import { minTermLength, output, softwareRegex } from './helpers';
+import { minTermLength, log, softwareRegex } from './helpers';
 
 /*
     Build a completion item's insertion text based on settings
@@ -76,7 +76,7 @@ export async function init(attackData: AttackMap): Promise<Array<Software>> {
             });
             return software;
         });
-        if (debug) { output.appendLine(`Parsed out ${softwares.length} softwares`); }
+        if (debug) { log(`Parsed out ${softwares.length} softwares`); }
         resolve(softwares);
     });
 }
@@ -89,6 +89,7 @@ export class SoftwareHoverProvider implements vscode.HoverProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
+                    if (debug) { log('Software hover provider cancelled!'); }
                     resolve(undefined);
                 });
                 let hover: vscode.Hover | undefined = undefined;
@@ -96,7 +97,6 @@ export class SoftwareHoverProvider implements vscode.HoverProvider {
                 hoverRange = document.getWordRangeAtPosition(position, softwareRegex);
                 if (hoverRange !== undefined) {
                     const hoverTerm: string = document.getText(hoverRange);
-                    if (debug) { output.appendLine(`provideHover: Hover term: ${hoverTerm}`); }
                     const currentSoftware: Software | undefined = this.software.find((g: Software) => { return g.id === hoverTerm; });
                     if (currentSoftware !== undefined) {
                         hover = new vscode.Hover(buildSoftwareDescription(currentSoftware), hoverRange);
@@ -105,7 +105,7 @@ export class SoftwareHoverProvider implements vscode.HoverProvider {
                 resolve(hover);
             });
         } catch (error) {
-            output.appendLine(`provideHover error: ${error}`);
+            log(`SoftwareHoverProvider error: ${error}`);
         }
     }
 }
@@ -118,29 +118,24 @@ export class SoftwareCompletionProvider implements vscode.CompletionItemProvider
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
+                    if (debug) { log('Software completion provider cancelled!'); }
                     resolve(undefined);
                 });
                 let completionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
                 let dbgMsg = '';
                 const completionRange: vscode.Range | undefined = document.getWordRangeAtPosition(position);
                 if (completionRange === undefined) {
-                    dbgMsg = `SoftwareCompletionProvider: No completion item range provided.`;
-                    console.log(dbgMsg);
-                    if (debug) { output.appendLine(dbgMsg); }
+                    if (debug) { log('SoftwareCompletionProvider: No completion item range provided.'); }
                 }
                 else {
                     const completionTerm: string = document.getText(completionRange);
                     // only return everything if this is a "long" term
                     if (completionTerm.length >= minTermLength) {
-                        dbgMsg = `SoftwareCompletionProvider: Completion term: ${completionTerm}`;
-                        console.log(dbgMsg);
-                        if (debug) { output.appendLine(dbgMsg); }
+                        if (debug) { log(`SoftwareCompletionProvider: Completion term: ${completionTerm}`); }
                         // if the user is trying to complete something that matches an exact software ID, just return that one item
                         const software: Software | undefined = this.software.find((g: Software) => { return g.id === completionTerm.toUpperCase(); });
                         if (software !== undefined) {
-                            dbgMsg = `SoftwareCompletionProvider: Found exact technique ID '${software.id}'`;
-                            console.log(dbgMsg);
-                            if (debug) { output.appendLine(dbgMsg); }
+                            if (debug) { log(`SoftwareCompletionProvider: Found exact technique ID '${software.id}'`); }
                             completionItems = [buildCompletionItem(software.id, software)];
                         }
                         else {
@@ -159,7 +154,7 @@ export class SoftwareCompletionProvider implements vscode.CompletionItemProvider
                 resolve(completionItems);
             });
         } catch (error) {
-            output.appendLine(`SoftwareCompletionProvider error: ${error}`);
+            log(`SoftwareCompletionProvider error: ${error}`);
         }
     }
 
@@ -168,9 +163,10 @@ export class SoftwareCompletionProvider implements vscode.CompletionItemProvider
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
+                    if (debug) { log('Software completion resolver cancelled!'); }
                     resolve(undefined);
                 });
-                // console.log(`SoftwareCompletionProvider: Received completion item with label: ${item.label}`);
+                if (debug) { log(`SoftwareCompletionProvider: Resolving completion item for '${item.label}'`); }
                 item.keepWhitespace = true;
                 const software: Software | undefined = this.software.find((g: Software) => {
                     return (g.id === item.label) || (g.name === item.label);
@@ -181,12 +177,13 @@ export class SoftwareCompletionProvider implements vscode.CompletionItemProvider
                 resolve(item);
             });
         } catch (error) {
-            output.appendLine(`SoftwareCompletionProvider error: ${error}`);
+            log(`SoftwareCompletionProvider error: ${error}`);
         }
     }
 }
 
 export function register(filters: vscode.DocumentSelector, tools: Array<Software>): Array<vscode.Disposable> {
+    log('Registering providers for software');
     // hover provider
     const softwareHovers: SoftwareHoverProvider = new SoftwareHoverProvider();
     const softwareHoverDisposable: vscode.Disposable = vscode.languages.registerHoverProvider(filters, softwareHovers);

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { completionFormat, configSection, debug } from './configuration';
-import { minTermLength, output, groupRegex } from './helpers';
+import { minTermLength, log, groupRegex } from './helpers';
 
 /*
     Build a completion item's insertion text based on settings
@@ -76,7 +76,7 @@ export async function init(attackData: AttackMap): Promise<Array<Group>> {
             });
             return group;
         });
-        if (debug) { output.appendLine(`Parsed out ${groups.length} groups`); }
+        if (debug) { log(`Parsed out ${groups.length} groups`); }
         resolve(groups);
     });
 }
@@ -89,6 +89,7 @@ export class GroupHoverProvider implements vscode.HoverProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
+                    if (debug) { log('Group hover provider cancelled!'); }
                     resolve(undefined);
                 });
                 let hover: vscode.Hover | undefined = undefined;
@@ -96,7 +97,6 @@ export class GroupHoverProvider implements vscode.HoverProvider {
                 hoverRange = document.getWordRangeAtPosition(position, groupRegex);
                 if (hoverRange !== undefined) {
                     const hoverTerm: string = document.getText(hoverRange);
-                    if (debug) { output.appendLine(`provideHover: Hover term: ${hoverTerm}`); }
                     const currentGroup: Group | undefined = this.groups.find((g: Group) => { return g.id === hoverTerm; });
                     if (currentGroup !== undefined) {
                         hover = new vscode.Hover(buildGroupDescription(currentGroup), hoverRange);
@@ -105,7 +105,7 @@ export class GroupHoverProvider implements vscode.HoverProvider {
                 resolve(hover);
             });
         } catch (error) {
-            output.appendLine(`provideHover error: ${error}`);
+            log(`GroupHoverProvider error: ${error}`);
         }
     }
 }
@@ -118,29 +118,24 @@ export class GroupCompletionProvider implements vscode.CompletionItemProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
+                    if (debug) { log('Group completion provider cancelled!'); }
                     resolve(undefined);
                 });
                 let completionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
                 let dbgMsg = '';
                 const completionRange: vscode.Range | undefined = document.getWordRangeAtPosition(position);
                 if (completionRange === undefined) {
-                    dbgMsg = `GroupCompletionProvider: No completion item range provided.`;
-                    console.log(dbgMsg);
-                    if (debug) { output.appendLine(dbgMsg); }
+                    if (debug) { log('GroupCompletionProvider: No completion item range provided.'); }
                 }
                 else {
                     const completionTerm: string = document.getText(completionRange);
                     // only return everything if this is a "long" term
                     if (completionTerm.length >= minTermLength) {
-                        dbgMsg = `GroupCompletionProvider: Completion term: ${completionTerm}`;
-                        console.log(dbgMsg);
-                        if (debug) { output.appendLine(dbgMsg); }
+                        if (debug) { log(`GroupCompletionProvider: Completion term: ${completionTerm}`); }
                         // if the user is trying to complete something that matches an exact group ID, just return that one item
                         const group: Group | undefined = this.groups.find((g: Group) => { return g.id === completionTerm.toUpperCase(); });
                         if (group !== undefined) {
-                            dbgMsg = `GroupCompletionProvider: Found exact technique ID '${group.id}'`;
-                            console.log(dbgMsg);
-                            if (debug) { output.appendLine(dbgMsg); }
+                            if (debug) { log(`GroupCompletionProvider: Found exact technique ID '${group.id}'`); }
                             completionItems = [buildCompletionItem(group.id, group)];
                         }
                         else {
@@ -159,7 +154,7 @@ export class GroupCompletionProvider implements vscode.CompletionItemProvider {
                 resolve(completionItems);
             });
         } catch (error) {
-            output.appendLine(`GroupCompletionProvider error: ${error}`);
+            log(`GroupCompletionProvider error: ${error}`);
         }
     }
 
@@ -168,9 +163,10 @@ export class GroupCompletionProvider implements vscode.CompletionItemProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
+                    if (debug) { log('Group completion resolver cancelled!'); }
                     resolve(undefined);
                 });
-                // console.log(`GroupCompletionProvider: Received completion item with label: ${item.label}`);
+                if (debug) { log(`GroupCompletionProvider: Resolving completion item for '${item.label}'`); }
                 item.keepWhitespace = true;
                 const group: Group | undefined = this.groups.find((g: Group) => {
                     return (g.id === item.label) || (g.name === item.label);
@@ -181,12 +177,13 @@ export class GroupCompletionProvider implements vscode.CompletionItemProvider {
                 resolve(item);
             });
         } catch (error) {
-            output.appendLine(`GroupCompletionProvider error: ${error}`);
+            log(`GroupCompletionProvider error: ${error}`);
         }
     }
 }
 
 export function register(filters: vscode.DocumentSelector, groups: Array<Group>): Array<vscode.Disposable> {
+    log('Registering providers for groups');
     // hover provider
     const groupHovers: GroupHoverProvider = new GroupHoverProvider();
     const groupHoverDisposable: vscode.Disposable = vscode.languages.registerHoverProvider(filters, groupHovers);

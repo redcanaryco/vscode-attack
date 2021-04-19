@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { configSection, setCompletionItemFormat, setDebugLogState } from './configuration';
-import { output } from './helpers';
+import { configSection, debug, setCompletionItemFormat, setDebugLogState } from './configuration';
+import { log } from './helpers';
 import * as helpers from './helpers';
 import { init as initGroups, register as registerGroups } from './groups';
 import { init as initMitigations, register as registerMitigations } from './mitigations';
@@ -21,6 +21,7 @@ const Providers = {
     techniques: new Array<vscode.Disposable>(),
     disposeAll: function (): void {
         // dispose of all providers at once
+        log('Disposing of all providers');
         this.groups.forEach((d: vscode.Disposable) => { d.dispose(); });
         this.mitigations.forEach((d: vscode.Disposable) => { d.dispose(); });
         this.software.forEach((d: vscode.Disposable) => { d.dispose(); });
@@ -30,6 +31,7 @@ const Providers = {
     pushAll: function (list: Array<vscode.Disposable>): void {
         // push all providers to the given list
         // ... should be used to push into the extension's context
+        log('Building list of all providers');
         this.groups.forEach((d: vscode.Disposable) => { list.push(d); });
         this.mitigations.forEach((d: vscode.Disposable) => { list.push(d); });
         this.software.forEach((d: vscode.Disposable) => { list.push(d); });
@@ -45,9 +47,9 @@ const currentProviders = Object.create(Providers);
 */
 export async function cacheData(storageDir: string): Promise<AttackMap|undefined> {
     let result: AttackMap|undefined = undefined;
+    log('Checking extension cache for MITRE ATT&CK mapping.');
     if (!fs.existsSync(storageDir)) {
         // cache the newest version of ATT&CK
-        // console.log(`Creating global storage directory: '${storageDir}'`);
         fs.mkdirSync(storageDir, {recursive: true});
         result = await helpers.downloadLatestAttackMap(storageDir);
     }
@@ -66,14 +68,13 @@ export async function cacheData(storageDir: string): Promise<AttackMap|undefined
             const onlineVersion = `${availableVersions.sort()[availableVersions.length - 1]}`;
             if (cachedVersion < onlineVersion) {
                 // if online version is newer than the cached one, download and use the online version
-                // console.log(`ATT&CK: New map found! Replacing the cached one.`);
-                vscode.window.showInformationMessage(`ATT&CK: Identified a new version of the ATT&CK mapping! Replacing cached version.`);
+                vscode.window.showInformationMessage('ATT&CK: Identified a new version of the ATT&CK mapping! Replacing cached version.');
+                log('Identified a new version of the ATT&CK mapping! Replacing cached version.');
                 result = await helpers.downloadLatestAttackMap(storageDir);
             }
             else {
                 // otherwise just use the cached one
-                output.appendLine(`Cached version is not older than downloaded version. Nothing to do.`);
-                // console.log(`ATT&CK: Cached version is not older than downloaded version. Nothing to do.`);
+                log('Cached version is not older than downloaded version. Nothing to do.');
                 const cachedData: string = fs.readFileSync(cachedPath, {encoding: 'utf8'});
                 result = JSON.parse(cachedData) as AttackMap;
             }
@@ -124,7 +125,7 @@ export function registerFeatures(techniques: Array<Technique>, tactics: Array<Ta
     const configuration: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(configSection);
     const applicableFiles: vscode.DocumentSelector|undefined = configuration.get('applicableFiles');
     if (applicableFiles !== undefined) {
-        // console.log(`Registering applicable files for the following document filters: ${JSON.stringify(applicableFiles)}`);
+        if (debug) { log(`Registering applicable files for the following document filters: ${JSON.stringify(applicableFiles)}`); }
         // first destroy the providers we have already registered to avoid duplicate data
         currentProviders.disposeAll();
         // ... then re-register our features and regenerate completions
@@ -135,15 +136,15 @@ export function registerFeatures(techniques: Array<Technique>, tactics: Array<Ta
         if (configuration.get('techniques')) { currentProviders.techniques = registerTechniques(applicableFiles, techniques); }
     }
     else {
-        vscode.window.showWarningMessage("No applicable files set in VSCode ATT&CK Settings. Most features are unavailable until a file type is added.");
-        console.log(`Couldn't parse applicableFiles setting: ${JSON.stringify(applicableFiles)}`);
+        vscode.window.showWarningMessage('No applicable files set in VSCode ATT&CK Settings. Most features are unavailable until a file type is added.');
+        log('No applicable files set in VSCode ATT&CK Settings. Most features are unavailable until a file type is added.');
     }
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<Record<string, Function> | undefined> {
     // output channel
-    output.clear();
-    output.appendLine('Activating MITRE ATT&CK extension');
+    helpers.output.clear();
+    log('Activating MITRE ATT&CK extension');
     // configuration
     setCompletionItemFormat();
     setDebugLogState();
@@ -155,9 +156,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
     let techniques: Array<Technique> = new Array<Technique>();
     const attackData: AttackMap|undefined = await cacheData(context.globalStorageUri.fsPath);
     if (attackData === undefined) {
-        output.appendLine(`Could not parse ATT&CK data from cache! Please restart the IDE`);
-        vscode.window.showErrorMessage(`ATT&CK: Could not parse ATT&CK data from cache! Please restart the IDE`);
-        console.log(`ATT&CK: Could not parse ATT&CK data from cache! Please restart the IDE`);
+        log('Could not parse ATT&CK data from cache! Please restart the IDE');
+        vscode.window.showErrorMessage('ATT&CK: Could not parse ATT&CK data from cache! Please restart the IDE');
     }
     else {
         // parse data
@@ -177,14 +177,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
                 currentProviders.pushAll(context.subscriptions);
             }
         }));
+        if (debug) { log('Registered configuration watcher'); }
         // commands
         context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.search', () => { search(techniques); }));
+        if (debug) { log('Registered command: vscode-attack.search'); }
         // window
         const statusBarItem: vscode.StatusBarItem|undefined = await createStatusBar(context.globalStorageUri.fsPath);
         if (statusBarItem !== undefined) {
             context.subscriptions.push(statusBarItem);
             toggleStatusBar(statusBarItem, vscode.window.activeTextEditor);
         }
+        if (debug) { log('Registered status bar item'); }
         // extension API
         const api: Record<string, Function> = {
             getAllTechniques: function (): Array<Technique> { return techniques; },
@@ -201,5 +204,5 @@ export function deactivate(context: vscode.ExtensionContext): void {
     context.subscriptions.forEach((disposable: vscode.Disposable) => {
         disposable.dispose();
     });
-    // console.log('Deactivated vscode-attack');
+    log('Deactivated vscode-attack');
 }
