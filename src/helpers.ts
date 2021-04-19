@@ -20,6 +20,12 @@ export const mitigationRegex = /M\d{4}/;
 // everything under this will only show the technique provider's results
 export const minTermLength = 5;
 
+
+export function log(message: string): void {
+    const currTime: Date = new Date();
+    output.appendLine(`[${currTime.toISOString()}] ${message}`);
+}
+
 /*
     Parse the last modified time of the given ATT&CK mapping
 */
