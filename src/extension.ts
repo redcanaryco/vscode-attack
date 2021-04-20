@@ -21,7 +21,7 @@ const Providers = {
     techniques: new Array<vscode.Disposable>(),
     disposeAll: function (): void {
         // dispose of all providers at once
-        log('Disposing of all providers');
+        if (debug) { log('Disposing of all providers'); }
         this.groups.forEach((d: vscode.Disposable) => { d.dispose(); });
         this.mitigations.forEach((d: vscode.Disposable) => { d.dispose(); });
         this.software.forEach((d: vscode.Disposable) => { d.dispose(); });
@@ -31,7 +31,7 @@ const Providers = {
     pushAll: function (list: Array<vscode.Disposable>): void {
         // push all providers to the given list
         // ... should be used to push into the extension's context
-        log('Building list of all providers');
+        if (debug) { log('Building list of all providers'); }
         this.groups.forEach((d: vscode.Disposable) => { list.push(d); });
         this.mitigations.forEach((d: vscode.Disposable) => { list.push(d); });
         this.software.forEach((d: vscode.Disposable) => { list.push(d); });
@@ -58,6 +58,7 @@ export async function cacheData(storageDir: string): Promise<AttackMap|undefined
         const cachedPath: string|undefined = await helpers.getLatestCacheVersion(storageDir);
         if (cachedPath === undefined) {
             // no files found - download the latest version from GitHub
+            log('Nothing found in extension cache. Downloading latest version of MITRE ATT&CK mapping');
             result = await helpers.downloadLatestAttackMap(storageDir);
         }
         else {
@@ -69,12 +70,12 @@ export async function cacheData(storageDir: string): Promise<AttackMap|undefined
             if (cachedVersion < onlineVersion) {
                 // if online version is newer than the cached one, download and use the online version
                 vscode.window.showInformationMessage('ATT&CK: Identified a new version of the ATT&CK mapping! Replacing cached version.');
-                log('Identified a new version of the ATT&CK mapping! Replacing cached version.');
+                log(`Identified a new version of the ATT&CK mapping! Replacing cached map (${cachedVersion}) with downloaded map (${onlineVersion})`);
                 result = await helpers.downloadLatestAttackMap(storageDir);
             }
             else {
                 // otherwise just use the cached one
-                log('Cached version is not older than downloaded version. Nothing to do.');
+                log(`Nothing to do. Cached version is on latest ATT&CK version ${onlineVersion}`);
                 const cachedData: string = fs.readFileSync(cachedPath, {encoding: 'utf8'});
                 result = JSON.parse(cachedData) as AttackMap;
             }
