@@ -99,6 +99,7 @@ export class GroupHoverProvider implements vscode.HoverProvider {
                     const hoverTerm: string = document.getText(hoverRange);
                     const currentGroup: Group | undefined = this.groups.find((g: Group) => { return g.id === hoverTerm; });
                     if (currentGroup !== undefined) {
+                        if (debug) { log(`GroupHoverProvider: Found exact Group ID '${currentGroup.id}'`); }
                         hover = new vscode.Hover(buildGroupDescription(currentGroup), hoverRange);
                     }
                 }
@@ -131,11 +132,10 @@ export class GroupCompletionProvider implements vscode.CompletionItemProvider {
                     const completionTerm: string = document.getText(completionRange);
                     // only return everything if this is a "long" term
                     if (completionTerm.length >= minTermLength) {
-                        if (debug) { log(`GroupCompletionProvider: Completion term: ${completionTerm}`); }
                         // if the user is trying to complete something that matches an exact group ID, just return that one item
                         const group: Group | undefined = this.groups.find((g: Group) => { return g.id === completionTerm.toUpperCase(); });
                         if (group !== undefined) {
-                            if (debug) { log(`GroupCompletionProvider: Found exact technique ID '${group.id}'`); }
+                            if (debug) { log(`GroupCompletionProvider: Found exact Group ID '${group.id}'`); }
                             completionItems = [buildCompletionItem(group.id, group)];
                         }
                         else {
@@ -145,6 +145,7 @@ export class GroupCompletionProvider implements vscode.CompletionItemProvider {
                             });
                             if (possibleGroups !== undefined) {
                                 completionItems = possibleGroups.map<vscode.CompletionItem>((g: Group) => {
+                                    if (debug) { log(`GroupCompletionProvider: Found possible Group '${g.name}'`); }
                                     return buildCompletionItem(g.name, g);
                                 });
                             }
@@ -183,7 +184,7 @@ export class GroupCompletionProvider implements vscode.CompletionItemProvider {
 }
 
 export function register(filters: vscode.DocumentSelector, groups: Array<Group>): Array<vscode.Disposable> {
-    log('Registering providers for groups');
+    log('Registering providers for Groups');
     // hover provider
     const groupHovers: GroupHoverProvider = new GroupHoverProvider();
     const groupHoverDisposable: vscode.Disposable = vscode.languages.registerHoverProvider(filters, groupHovers);

@@ -99,6 +99,7 @@ export class SoftwareHoverProvider implements vscode.HoverProvider {
                     const hoverTerm: string = document.getText(hoverRange);
                     const currentSoftware: Software | undefined = this.software.find((g: Software) => { return g.id === hoverTerm; });
                     if (currentSoftware !== undefined) {
+                        if (debug) { log(`SoftwareHoverProvider: Found exact Software ID '${currentSoftware.id}'`); }
                         hover = new vscode.Hover(buildSoftwareDescription(currentSoftware), hoverRange);
                     }
                 }
@@ -135,7 +136,7 @@ export class SoftwareCompletionProvider implements vscode.CompletionItemProvider
                         // if the user is trying to complete something that matches an exact software ID, just return that one item
                         const software: Software | undefined = this.software.find((g: Software) => { return g.id === completionTerm.toUpperCase(); });
                         if (software !== undefined) {
-                            if (debug) { log(`SoftwareCompletionProvider: Found exact technique ID '${software.id}'`); }
+                            if (debug) { log(`SoftwareCompletionProvider: Found exact Software ID '${software.id}'`); }
                             completionItems = [buildCompletionItem(software.id, software)];
                         }
                         else {
@@ -183,7 +184,7 @@ export class SoftwareCompletionProvider implements vscode.CompletionItemProvider
 }
 
 export function register(filters: vscode.DocumentSelector, tools: Array<Software>): Array<vscode.Disposable> {
-    log('Registering providers for software');
+    log('Registering providers for Software');
     // hover provider
     const softwareHovers: SoftwareHoverProvider = new SoftwareHoverProvider();
     const softwareHoverDisposable: vscode.Disposable = vscode.languages.registerHoverProvider(filters, softwareHovers);

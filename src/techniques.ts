@@ -175,6 +175,7 @@ export class TechniqueHoverProvider implements vscode.HoverProvider {
                     const hoverTerm: string = document.getText(hoverRange);
                     const currentTechnique: Technique | undefined = this.techniques.find((t: Technique) => { return t.id === hoverTerm; });
                     if (currentTechnique !== undefined) {
+                        if (debug) { log(`TechniqueHoverProvider: Found exact Technique ID '${currentTechnique.id}'`); }
                         hover = new vscode.Hover(buildTechniqueDescription(currentTechnique), hoverRange);
                     }
                 }
@@ -200,7 +201,6 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
                     resolve(undefined);
                 });
                 let completionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
-                let dbgMsg = '';
                 // without the regex, if a user tries to complete a subtechnique
                 // ... only the numbers after the dot would be completed
                 const completionRange: vscode.Range | undefined = document.getWordRangeAtPosition(position, /\S+/);
@@ -210,7 +210,6 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
                 }
                 else {
                     const completionTerm: string = document.getText(completionRange);
-                    if (debug) { log(`TechniqueCompletionProvider: Completion term: ${completionTerm}`); }
                     // if this is a short completion term, return every parsed technique without further action
                     if (completionTerm.length < minTermLength) {
                         if (debug) { log('TechniqueCompletionProvider: Short completion term detected. Returning everything'); }
@@ -218,14 +217,14 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
                     }
                     // do not search technique descriptions if the TID matches a revoked technique
                     else if (this.revokedTechniques.find((t: Technique) => { return t.id === completionTerm.toUpperCase(); })) {
-                        if (debug) { log(`Completion term '${completionTerm}' found in revoked techniques`); }
+                        if (debug) { log(`TechniqueCompletionProvider: Completion term '${completionTerm}' found in revoked techniques`); }
                         completionItems = new Array<vscode.CompletionItem>();
                     }
                     // if the user is trying to complete something that matches an exact technique ID, just return that one item
                     else {
                         const technique: Technique | undefined = this.techniques.find((t: Technique) => { return t.id === completionTerm.toUpperCase(); });
                         if (technique !== undefined) {
-                            if (debug) { log(`TechniqueCompletionProvider: Found exact technique ID '${technique.id}'`); }
+                            if (debug) { log(`TechniqueCompletionProvider: Found exact Technique ID '${technique.id}'`); }
                             completionItems = [buildCompletionItem(technique.id, technique)];
                         }
                         else {
@@ -238,6 +237,7 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
                             });
                             if (possibleTechniques !== undefined) {
                                 completionItems = possibleTechniques.map<vscode.CompletionItem>((t: Technique) => {
+                                    if (debug) { log(`TechniqueCompletionProvider: Found possible Technique '${t.name}'`); }
                                     return buildCompletionItem(t.name, t);
                                 });
                             }
@@ -314,7 +314,7 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
 }
 
 export function register(filters: vscode.DocumentSelector, techniques: Array<Technique>): Array<vscode.Disposable> {
-    log('Registering providers for techniques');
+    log('Registering providers for Techniques');
     // hover provider
     const techniqueHovers: TechniqueHoverProvider = new TechniqueHoverProvider();
     techniqueHovers.techniques = techniques;

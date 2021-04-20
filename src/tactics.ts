@@ -92,6 +92,7 @@ export class TacticHoverProvider implements vscode.HoverProvider {
                     const hoverTerm: string = document.getText(hoverRange);
                     const currentTactic: Tactic | undefined = this.tactics.find((t: Tactic) => { return t.id === hoverTerm; });
                     if (currentTactic !== undefined) {
+                        if (debug) { log(`TacticHoverProvider: Found exact Tactic ID '${currentTactic.id}'`); }
                         hover = new vscode.Hover(buildTacticDescription(currentTactic), hoverRange);
                     }
                 }
@@ -124,11 +125,10 @@ export class TacticCompletionProvider implements vscode.CompletionItemProvider {
                     const completionTerm: string = document.getText(completionRange);
                     // only return everything if this is a "long" term
                     if (completionTerm.length >= minTermLength) {
-                        if (debug) { log(`TacticCompletionProvider: Completion term: ${completionTerm}`); }
                         // if the user is trying to complete something that matches an exact technique ID, just return that one item
                         const tactic: Tactic | undefined = this.tactics.find((t: Tactic) => { return t.id === completionTerm.toUpperCase(); });
                         if (tactic !== undefined) {
-                            if (debug) { log(`TacticCompletionProvider: Found exact technique ID '${tactic.id}'`); }
+                            if (debug) { log(`TacticCompletionProvider: Found exact Tactic ID '${tactic.id}'`); }
                             completionItems = [buildCompletionItem(tactic.id, tactic)];
                         }
                         else {
@@ -138,6 +138,7 @@ export class TacticCompletionProvider implements vscode.CompletionItemProvider {
                             });
                             if (possibleTactics !== undefined) {
                                 completionItems = possibleTactics.map<vscode.CompletionItem>((t: Tactic) => {
+                                    if (debug) { log(`TacticCompletionProvider: Found possible Tactic '${t.name}'`); }
                                     return buildCompletionItem(t.name, t);
                                 });
                             }
@@ -179,7 +180,7 @@ export class TacticCompletionProvider implements vscode.CompletionItemProvider {
     Register features for the given DocumentFilters and Tactics
 */
 export function register(filters: vscode.DocumentSelector, tactics: Array<Tactic>): Array<vscode.Disposable> {
-    log('Registering providers for tactics');
+    log('Registering providers for Tactics');
     // hover provider
     const tacticHovers: TacticHoverProvider = new TacticHoverProvider();
     const tacticHoverDisposable: vscode.Disposable = vscode.languages.registerHoverProvider(filters, tacticHovers);
