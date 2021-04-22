@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { completionFormat, configSection, debug } from './configuration';
-import { minTermLength, output, techniqueRegex } from './helpers';
+import { minTermLength, log, techniqueRegex } from './helpers';
 
 let techniqueCompletionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
 
@@ -84,8 +84,6 @@ function buildTechniqueDescription(technique: Technique, descriptionType: string
 */
 function generateCompletionItems(currentTechniques: Array<Technique>): void {
     const techniques: Array<Technique> = currentTechniques;
-    // console.log('Regenerating code completion items for techniques');
-    if (debug) { output.appendLine('Regenerating code completion items for techniques'); }
     techniqueCompletionItems = new Array<vscode.CompletionItem>();
     techniqueCompletionItems = techniques.map<vscode.CompletionItem>((t: Technique) => {
         const insertionText: string = buildInsertionText(t);
@@ -105,7 +103,6 @@ function generateCompletionItems(currentTechniques: Array<Technique>): void {
         if (t.deprecated || t.revoked) { completionItem.tags = [vscode.CompletionItemTag.Deprecated]; }
         return completionItem;
     });
-    // console.log(`generated ${techniqueCompletionItems.length} completion items`);
 }
 
 /*
@@ -152,13 +149,12 @@ export async function init(attackData: AttackMap): Promise<Technique[]> {
                 if (parentTID !== undefined) {
                     const parent: Technique | undefined = techniques.find((t: Technique) => { return t.id === parentTID; });
                     if (parent !== undefined) {
-                        // console.log(`Found '${technique.name}' (${technique.id}) is a subtechnique of '${parent.name}' (${parent.id})`);
                         technique.parent = parent;
                     }
                 }
             }
         });
-        if (debug) { output.appendLine(`Parsed out ${techniques.length} techniques`); }
+        if (debug) { log(`Parsed out ${techniques.length} techniques`); }
         resolve(techniques);
     });
 }
@@ -171,6 +167,7 @@ export class TechniqueHoverProvider implements vscode.HoverProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
+                    if (debug) { log('TechniqueHoverProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let hover: vscode.Hover | undefined = undefined;
@@ -179,16 +176,16 @@ export class TechniqueHoverProvider implements vscode.HoverProvider {
                 hoverRange = document.getWordRangeAtPosition(position, techniqueRegex);
                 if (hoverRange !== undefined) {
                     const hoverTerm: string = document.getText(hoverRange);
-                    if (debug) { output.appendLine(`provideHover: Hover term: ${hoverTerm}`); }
                     const currentTechnique: Technique | undefined = this.techniques.find((t: Technique) => { return t.id === hoverTerm; });
                     if (currentTechnique !== undefined) {
+                        if (debug) { log(`TechniqueHoverProvider: Found exact Technique ID '${currentTechnique.id}'`); }
                         hover = new vscode.Hover(buildTechniqueDescription(currentTechnique), hoverRange);
                     }
                 }
                 resolve(hover);
             });
         } catch (error) {
-            output.appendLine(`provideHover error: ${error}`);
+            log(`TechniqueHoverProvider error: ${error}`);
         }
     }
 }
@@ -203,44 +200,34 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
+                    if (debug) { log('TechniqueCompletionProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let completionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
-                let dbgMsg = '';
                 // without the regex, if a user tries to complete a subtechnique
                 // ... only the numbers after the dot would be completed
                 const completionRange: vscode.Range | undefined = document.getWordRangeAtPosition(position, /\S+/);
                 if (completionRange === undefined) {
-                    dbgMsg = `TechniqueCompletionProvider: No completion item range provided. Returning everything`;
-                    console.log(dbgMsg);
-                    if (debug) { output.appendLine(dbgMsg); }
+                    if (debug) { log('TechniqueCompletionProvider: No completion item range provided. Returning everything'); }
                     completionItems = techniqueCompletionItems;
                 }
                 else {
                     const completionTerm: string = document.getText(completionRange);
-                    dbgMsg = `TechniqueCompletionProvider: Completion term: ${completionTerm}`;
-                    console.log(dbgMsg);
-                    if (debug) { output.appendLine(dbgMsg); }
                     // if this is a short completion term, return every parsed technique without further action
                     if (completionTerm.length < minTermLength) {
-                        dbgMsg = `TechniqueCompletionProvider: Short completion term detected. Returning everything`;
-                        console.log(dbgMsg);
-                        if (debug) { output.appendLine(dbgMsg); }
+                        if (debug) { log('TechniqueCompletionProvider: Short completion term detected. Returning everything'); }
                         completionItems = techniqueCompletionItems;
                     }
                     // do not search technique descriptions if the TID matches a revoked technique
                     else if (this.revokedTechniques.find((t: Technique) => { return t.id === completionTerm.toUpperCase(); })) {
-                        console.log(`TechniqueCompletionProvider: Completion term '${completionTerm}' found in revoked techniques`);
-                        if (debug) { output.appendLine(`Completion term '${completionTerm}' found in revoked techniques`); }
+                        if (debug) { log(`TechniqueCompletionProvider: Completion term '${completionTerm}' found in revoked techniques`); }
                         completionItems = new Array<vscode.CompletionItem>();
                     }
                     // if the user is trying to complete something that matches an exact technique ID, just return that one item
                     else {
                         const technique: Technique | undefined = this.techniques.find((t: Technique) => { return t.id === completionTerm.toUpperCase(); });
                         if (technique !== undefined) {
-                            dbgMsg = `TechniqueCompletionProvider: Found exact technique ID '${technique.id}'`;
-                            console.log(dbgMsg);
-                            if (debug) { output.appendLine(dbgMsg); }
+                            if (debug) { log(`TechniqueCompletionProvider: Found exact Technique ID '${technique.id}'`); }
                             completionItems = [buildCompletionItem(technique.id, technique)];
                         }
                         else {
@@ -253,6 +240,7 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
                             });
                             if (possibleTechniques !== undefined) {
                                 completionItems = possibleTechniques.map<vscode.CompletionItem>((t: Technique) => {
+                                    if (debug) { log(`TechniqueCompletionProvider: Found possible Technique '${t.name}'`); }
                                     return buildCompletionItem(t.name, t);
                                 });
                             }
@@ -260,13 +248,11 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
                         // if at this point we still don't know what the user is trying to complete, and the user manually invoked the completion
                         // ... search all the technique descriptions for matching keywords
                         if (completionItems.length === 0 && context.triggerKind === vscode.CompletionTriggerKind.Invoke) {
-                            console.log(`TechniqueCompletionProvider: Term '${completionTerm}' meets length threshold for description searching`);
+                            if (debug) { log(`TechniqueCompletionProvider: Term '${completionTerm}' meets length threshold for description searching`); }
                             completionItems = this.techniques.filter((t: Technique) => {
                                 return t.description.long.toLowerCase().includes(completionTerm.toLowerCase());
                             }).map<vscode.CompletionItem>((t: Technique) => {
-                                dbgMsg = `TechniqueCompletionProvider: Found matching technique description in '${t.id}: ${t.name}'`;
-                                console.log(dbgMsg);
-                                if (debug) { output.appendLine(dbgMsg); }
+                                if (debug) { log(`TechniqueCompletionProvider: Found matching technique description in '${t.id}: ${t.name}'`); }
                                 const item: vscode.CompletionItem = buildCompletionItem(`${completionTerm} (technique description)`, t);
                                 // always show the long description because that's what we're searching in
                                 const documentation: vscode.MarkdownString = buildTechniqueDescription(t, 'long');
@@ -286,11 +272,10 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
                         }
                     }
                 }
-                console.log(`TechniqueCompletionProvider: Returning ${completionItems.length} items`);
                 resolve(completionItems);
             });
         } catch (error) {
-            output.appendLine(`TechniqueCompletionProvider error: ${error}`);
+            log(`TechniqueCompletionProvider error: ${error}`);
         }
     }
 
@@ -299,9 +284,10 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
+                    if (debug) { log('TechniqueCompletionProvider: Resolution task cancelled!'); }
                     resolve(undefined);
                 });
-                // console.log(`resolveCompletionItem: Received completion item with label: ${item.label}`);
+                if (debug) { log(`TechniqueCompletionProvider: Resolving completion item for '${item.label}'`); }
                 item.keepWhitespace = true;
                 // some items will already have documentation filled out at creation time
                 // ... such as technique description items, because we cannot correlate them back to a technique at resolution
@@ -325,12 +311,13 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
             });
         }
         catch (error) {
-            output.appendLine(`TechniqueCompletionProvider error: ${error}`);
+            log(`TechniqueCompletionProvider error: ${error}`);
         }
     }
 }
 
 export function register(filters: vscode.DocumentSelector, techniques: Array<Technique>): Array<vscode.Disposable> {
+    log('Registering providers for Techniques');
     // hover provider
     const techniqueHovers: TechniqueHoverProvider = new TechniqueHoverProvider();
     techniqueHovers.techniques = techniques;

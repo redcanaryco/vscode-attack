@@ -21,6 +21,13 @@ export const mitigationRegex = /M\d{4}/;
 export const minTermLength = 5;
 
 /*
+    Send a given message to the MITRE ATT&CK output channel with a timestamp
+*/
+export function log(message: string): void {
+    output.appendLine(`[${new Date().toISOString()}] ${message}`);
+}
+
+/*
     Parse the last modified time of the given ATT&CK mapping
 */
 export function getModifiedTime(mapping: AttackMap): string|undefined {
@@ -67,8 +74,7 @@ export function getVersions(prefix = 'ATT&CK-v'): Promise<Array<string>> {
             res.on('data', (chunk) => { downloadedData = downloadedData.concat(chunk); });
             res.on('error', (err: Error) => {
                 // something bad happened! let the user know
-                console.log(`ATT&CK: Could not retrieve the version list! ${err.message}`);
-                output.appendLine(`Could not retrieve the version list! ${err.message}`);
+                log(`Could not retrieve the version list! ${err.message}`);
                 vscode.window.showErrorMessage(`ATT&CK: Could not retrieve the version list! ${err.message}`);
                 reject(err);
             });
@@ -130,23 +136,20 @@ export function downloadAttackMap(storageDir: string, version: string): Promise<
                     res.on('data', (chunk) => { downloadedData = downloadedData.concat(chunk); });
                     res.on('error', (err: Error) => {
                         // something bad happened! let the user know
-                        output.appendLine(`Something went wrong while downloading ATT&CK mapping! ${err.message}`);
+                        log(`Something went wrong while downloading ATT&CK mapping! ${err.message}`);
                         vscode.window.showErrorMessage(`ATT&CK: Something went wrong while downloading ATT&CK mapping v${version}! ${err.message}`);
-                        console.log(`ATT&CK: Something went wrong while downloading ATT&CK mapping! ${err.message}`);
                         reject(err);
                     });
                     res.on('end', () => {
-                        console.log(`Attempting to write contents to ${storagePath}`);
                         // save the JSON file to the global storage path
                         fs.writeFileSync(storagePath, downloadedData.toString());
-                        output.appendLine(`Successfully cached the Enterprise ATT&CK v${version} data @ '${storagePath}'!`);
-                        console.log(`Successfully cached the Enterprise ATT&CK v${version} data @ '${storagePath}'!`);
+                        log(`Successfully cached the Enterprise ATT&CK v${version} data @ '${storagePath}'!`);
                         resolve(downloadedData);
                     });
                 });
             }
             else {
-                console.log(`Could not find version ${version} in the tags list: ${availableVersions}`);
+                log(`Could not find version ${version} in the tags list: ${availableVersions}`);
                 resolve(downloadedData);
             }
         });
@@ -176,7 +179,7 @@ export function getLatestCacheVersion(cacheDir: string): Promise<string|undefine
         let latestVersionPath: string|undefined = undefined;
         fs.readdir(cacheDir, (err, files) => {
             if (err) {
-                console.log(`Couldn't read files from ${cacheDir}! ${err.message}`);
+                log(`Couldn't read files from ${cacheDir}! ${err.message}`);
                 reject(err);
             }
             else {
