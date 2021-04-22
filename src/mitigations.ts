@@ -87,7 +87,7 @@ export class MitigationHoverProvider implements vscode.HoverProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Mitigation hover provider cancelled!'); }
+                    if (debug) { log('MitigationHoverProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let hover: vscode.Hover | undefined = undefined;
@@ -117,7 +117,7 @@ export class MitigationCompletionProvider implements vscode.CompletionItemProvid
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Mitigation completion provider cancelled!'); }
+                    if (debug) { log('MitigationCompletionProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let completionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
@@ -162,7 +162,7 @@ export class MitigationCompletionProvider implements vscode.CompletionItemProvid
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Mitigation completion resolver cancelled!'); }
+                    if (debug) { log('MitigationCompletionProvider: Resolution task cancelled!'); }
                     resolve(undefined);
                 });
                 if (debug) { log(`MitigationCompletionProvider: Resolving completion item for '${item.label}'`); }

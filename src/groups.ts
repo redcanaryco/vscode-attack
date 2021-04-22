@@ -89,7 +89,7 @@ export class GroupHoverProvider implements vscode.HoverProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Group hover provider cancelled!'); }
+                    if (debug) { log('GroupHoverProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let hover: vscode.Hover | undefined = undefined;
@@ -119,7 +119,7 @@ export class GroupCompletionProvider implements vscode.CompletionItemProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Group completion provider cancelled!'); }
+                    if (debug) { log('GroupCompletionProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let completionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
@@ -164,7 +164,7 @@ export class GroupCompletionProvider implements vscode.CompletionItemProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Group completion resolver cancelled!'); }
+                    if (debug) { log('GroupCompletionProvider: Resolution task cancelled!'); }
                     resolve(undefined);
                 });
                 if (debug) { log(`GroupCompletionProvider: Resolving completion item for '${item.label}'`); }

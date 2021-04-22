@@ -164,7 +164,7 @@ export class TechniqueHoverProvider implements vscode.HoverProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Technique hover provider cancelled!'); }
+                    if (debug) { log('TechniqueHoverProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let hover: vscode.Hover | undefined = undefined;
@@ -197,7 +197,7 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Technique completion provider cancelled!'); }
+                    if (debug) { log('TechniqueCompletionProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let completionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
@@ -281,7 +281,7 @@ export class TechniqueCompletionProvider implements vscode.CompletionItemProvide
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Technique completion resolver cancelled!'); }
+                    if (debug) { log('TechniqueCompletionProvider: Resolution task cancelled!'); }
                     resolve(undefined);
                 });
                 if (debug) { log(`TechniqueCompletionProvider: Resolving completion item for '${item.label}'`); }

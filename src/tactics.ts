@@ -81,7 +81,7 @@ export class TacticHoverProvider implements vscode.HoverProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Tactic hover provider cancelled!'); }
+                    if (debug) { log('TacticHoverProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let hover: vscode.Hover | undefined = undefined;
@@ -112,7 +112,7 @@ export class TacticCompletionProvider implements vscode.CompletionItemProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Tactic completion provider cancelled!'); }
+                    if (debug) { log('TacticCompletionProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let completionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
@@ -157,7 +157,7 @@ export class TacticCompletionProvider implements vscode.CompletionItemProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Tactic completion resolver cancelled!'); }
+                    if (debug) { log('TacticCompletionProvider: Resolution task cancelled!'); }
                     resolve(undefined);
                 });
                 if (debug) { log(`TacticCompletionProvider: Resolving completion item for '${item.label}'`); }

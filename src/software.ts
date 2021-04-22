@@ -89,7 +89,7 @@ export class SoftwareHoverProvider implements vscode.HoverProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Software hover provider cancelled!'); }
+                    if (debug) { log('SoftwareHoverProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let hover: vscode.Hover | undefined = undefined;
@@ -119,7 +119,7 @@ export class SoftwareCompletionProvider implements vscode.CompletionItemProvider
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Software completion provider cancelled!'); }
+                    if (debug) { log('SoftwareCompletionProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let completionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
@@ -164,7 +164,7 @@ export class SoftwareCompletionProvider implements vscode.CompletionItemProvider
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
-                    if (debug) { log('Software completion resolver cancelled!'); }
+                    if (debug) { log('SoftwareCompletionProvider: Resolution task cancelled!'); }
                     resolve(undefined);
                 });
                 if (debug) { log(`SoftwareCompletionProvider: Resolving completion item for '${item.label}'`); }
