@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { completionFormat, configSection, debug } from './configuration';
-import { minTermLength, output, mitigationRegex } from './helpers';
+import { minTermLength, log, mitigationRegex } from './helpers';
 
 /*
     Build a completion item's insertion text based on settings
@@ -74,7 +74,7 @@ export async function init(attackData: AttackMap): Promise<Array<Mitigation>> {
         // certain techniques have their own mitigation entry with an ID that matches their technique ID
         // ... filter these out, as they are not generally useful
         mitigations = mitigations.filter((mitigation: Mitigation) => { return mitigation.id.match(mitigationRegex); });
-        if (debug) { output.appendLine(`Parsed out ${mitigations.length} mitigations`); }
+        if (debug) { log(`Parsed out ${mitigations.length} mitigations`); }
         resolve(mitigations);
     });
 }
@@ -87,6 +87,7 @@ export class MitigationHoverProvider implements vscode.HoverProvider {
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
+                    if (debug) { log('MitigationHoverProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let hover: vscode.Hover | undefined = undefined;
@@ -94,16 +95,16 @@ export class MitigationHoverProvider implements vscode.HoverProvider {
                 hoverRange = document.getWordRangeAtPosition(position, mitigationRegex);
                 if (hoverRange !== undefined) {
                     const hoverTerm: string = document.getText(hoverRange);
-                    if (debug) { output.appendLine(`provideHover: Hover term: ${hoverTerm}`); }
                     const currentMitigation: Mitigation | undefined = this.mitigations.find((g: Mitigation) => { return g.id === hoverTerm; });
                     if (currentMitigation !== undefined) {
+                        if (debug) { log(`MitigationHoverProvider: Found exact Mitigation ID '${currentMitigation.id}'`); }
                         hover = new vscode.Hover(buildMitigationDescription(currentMitigation), hoverRange);
                     }
                 }
                 resolve(hover);
             });
         } catch (error) {
-            output.appendLine(`provideHover error: ${error}`);
+            log(`MitigationHoverProvider error: ${error}`);
         }
     }
 }
@@ -116,29 +117,23 @@ export class MitigationCompletionProvider implements vscode.CompletionItemProvid
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
+                    if (debug) { log('MitigationCompletionProvider: Task cancelled!'); }
                     resolve(undefined);
                 });
                 let completionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
                 let dbgMsg = '';
                 const completionRange: vscode.Range | undefined = document.getWordRangeAtPosition(position);
                 if (completionRange === undefined) {
-                    dbgMsg = `MitigationCompletionProvider: No completion item range provided.`;
-                    console.log(dbgMsg);
-                    if (debug) { output.appendLine(dbgMsg); }
+                    if (debug) { log('MitigationCompletionProvider: No completion item range provided.'); }
                 }
                 else {
                     const completionTerm: string = document.getText(completionRange);
                     // only return everything if this is a "long" term
                     if (completionTerm.length >= minTermLength) {
-                        dbgMsg = `MitigationCompletionProvider: Completion term: ${completionTerm}`;
-                        console.log(dbgMsg);
-                        if (debug) { output.appendLine(dbgMsg); }
                         // if the user is trying to complete something that matches an exact mitigation ID, just return that one item
                         const mitigation: Mitigation | undefined = this.mitigations.find((g: Mitigation) => { return g.id === completionTerm.toUpperCase(); });
                         if (mitigation !== undefined) {
-                            dbgMsg = `MitigationCompletionProvider: Found exact technique ID '${mitigation.id}'`;
-                            console.log(dbgMsg);
-                            if (debug) { output.appendLine(dbgMsg); }
+                            if (debug) { log(`MitigationCompletionProvider: Found exact Mitigation ID '${mitigation.id}'`); }
                             completionItems = [buildCompletionItem(mitigation.id, mitigation)];
                         }
                         else {
@@ -147,8 +142,9 @@ export class MitigationCompletionProvider implements vscode.CompletionItemProvid
                                 return s.name.toLowerCase().includes(completionTerm.toLowerCase());
                             });
                             if (possibleMitigation !== undefined) {
-                                completionItems = possibleMitigation.map<vscode.CompletionItem>((s: Mitigation) => {
-                                    return buildCompletionItem(s.name, s);
+                                completionItems = possibleMitigation.map<vscode.CompletionItem>((m: Mitigation) => {
+                                    if (debug) { log(`MitigationCompletionProvider: Found possible Mitigation '${m.name}'`); }
+                                    return buildCompletionItem(m.name, m);
                                 });
                             }
                         }
@@ -157,7 +153,7 @@ export class MitigationCompletionProvider implements vscode.CompletionItemProvid
                 resolve(completionItems);
             });
         } catch (error) {
-            output.appendLine(`MitigationCompletionProvider error: ${error}`);
+            log(`MitigationCompletionProvider error: ${error}`);
         }
     }
 
@@ -166,8 +162,10 @@ export class MitigationCompletionProvider implements vscode.CompletionItemProvid
             return new Promise((resolve) => {
                 token.onCancellationRequested(() => {
                     // if this process is cancelled, just return nothing
+                    if (debug) { log('MitigationCompletionProvider: Resolution task cancelled!'); }
                     resolve(undefined);
                 });
+                if (debug) { log(`MitigationCompletionProvider: Resolving completion item for '${item.label}'`); }
                 item.keepWhitespace = true;
                 const mitigation: Mitigation | undefined = this.mitigations.find((g: Mitigation) => {
                     return (g.id === item.label) || (g.name === item.label);
@@ -178,12 +176,13 @@ export class MitigationCompletionProvider implements vscode.CompletionItemProvid
                 resolve(item);
             });
         } catch (error) {
-            output.appendLine(`MitigationCompletionProvider error: ${error}`);
+            log(`MitigationCompletionProvider error: ${error}`);
         }
     }
 }
 
 export function register(filters: vscode.DocumentSelector, mitigations: Array<Mitigation>): Array<vscode.Disposable> {
+    log('Registering providers for Mitigations');
     // hover provider
     const mitigationHovers: MitigationHoverProvider = new MitigationHoverProvider();
     const mitigationHoverDisposable: vscode.Disposable = vscode.languages.registerHoverProvider(filters, mitigationHovers);
