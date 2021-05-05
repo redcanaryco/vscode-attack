@@ -77,38 +77,55 @@ describe('Command: insertLink', function () {
     const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
     const testUri: vscode.Uri = vscode.Uri.file(testPath);
     let ext: vscode.Extension<unknown> | undefined;
+    const attackObjects: Array<Group|Mitigation|Software|Tactic|Technique> = [
+        {
+            deprecated: false,
+            description: {
+                short: 'test description',
+                long: 'longer test description'
+            },
+            id: 'T1059.001',
+            name: 'PowerShell',
+            parent: undefined,
+            revoked: false,
+            subtechnique: true,
+            tactics: [],
+            url: 'https://attack.mitre.org/techniques/T1059/001',
+        }
+    ];
 
     before(async function () {
         ext = vscode.extensions.getExtension(extensionID);
         await ext?.activate();
         exports = ext?.exports;
     });
-    beforeEach(ignoreConsoleLogs);
+    // beforeEach(ignoreConsoleLogs);
     afterEach(resetState);
     it('insert link command should exist', async function () {
         const commands: Array<string> = await vscode.commands.getCommands(true);
         assert.ok(commands.includes(insertLinkCommand), `No '${insertLinkCommand}' exists.`);
     });
-    it.skip('should insert a link for markdown text', async function () {
-        const tid = 'T1059.001';
-        const expectedLink = 'https://attack.mitre.org/techniques/T1059/001';
-        const editor: vscode.TextEditor = await vscode.window.showTextDocument(testUri);
-        const techniques: Array<Technique> = [
-            {
-                deprecated: false,
-                description: {
-                    short: 'test description',
-                    long: 'longer test description'
-                },
-                id: tid,
-                name: 'test',
-                parent: undefined,
-                revoked: false,
-                subtechnique: true,
-                tactics: [],
-                url: expectedLink,
-            }
-        ];
-        vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: techniques});
+    it('should insert a link for markdown text', async function () {
+        const expectedLink: string = attackObjects[0].url;
+        const tid: string = attackObjects[0].id;
+        const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(1, 0), new vscode.Position(1, tid.length));
+        let editor: vscode.TextEditor = await vscode.window.showTextDocument(testUri);
+        editor.selections = [highlightedText];
+        vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
+        // close and reopen to get our new document text
+        vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        editor = await vscode.window.showTextDocument(testUri);
+        const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
+        assert.ok(result.text.includes(expectedLink));
+    });
+    it('should not insert a link when highlighted text is not an ATT&CK object ID', async function () {
+        const unExpectedLink: string = attackObjects[0].url;
+        const text: string = attackObjects[0].name;
+        const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(2, 0), new vscode.Position(2, text.length));
+        const editor: vscode.TextEditor|undefined = await vscode.window.showTextDocument(testUri);
+        editor.selections = [highlightedText];
+        vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
+        const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
+        assert.ok(!result.text.includes(unExpectedLink));
     });
 });

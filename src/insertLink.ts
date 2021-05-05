@@ -21,7 +21,6 @@ export function insertLink(editor: vscode.TextEditor|undefined, groups: Array<Gr
     if (editor === undefined) {
         // there's no open text document, so there couldn't possibly be highlighted text
         if (debug) { output.appendLine('insertLink: Could not identify an active editor, so no text can be inserted.'); }
-        console.log('insertLink: No activeTextEditor found. Could not identify a text selection as a result');
         vscode.window.showWarningMessage('ATT&CK: Could not insert a link, because there is no active text document.');
     }
     else {
@@ -31,7 +30,6 @@ export function insertLink(editor: vscode.TextEditor|undefined, groups: Array<Gr
             // we don't actually have text to replace
             // ... this might happen if this command was called without highlighting text first
             if (debug) { output.appendLine(`insertLink: No text has been selected. Cannot insert link`); }
-            console.log('insertLink: Empty selection identified. Cannot insert link');
             vscode.window.showWarningMessage('ATT&CK: Could not insert a link, because no text was selected.');
         }
         else {
@@ -58,7 +56,6 @@ export function insertLink(editor: vscode.TextEditor|undefined, groups: Array<Gr
             if (matchingObject === undefined) {
                 // doesn't look like the highlighted text resembles any ATT&CK object we're aware of
                 if (debug) { output.appendLine(`insertLink: Did not find a matching object for '${highlightedText}'`); }
-                console.log(`insertLink: Did not find a matching object for '${highlightedText}'`);
                 vscode.window.showWarningMessage(`ATT&CK: Could not insert a link, because '${highlightedText.substr(0, 20)}' does not match any available ATT&CK objects.`);
                 return;
             }
@@ -67,14 +64,12 @@ export function insertLink(editor: vscode.TextEditor|undefined, groups: Array<Gr
                 // we should never get here since we should've detected malformed ATT&CK objects on startup
                 // ... but still, let's try to inform the user if something weird happens
                 output.appendLine(`insertLink: Could not extract URL for ${matchingObject.id}!`);
-                console.log(`insertLink: ATT&CK object has no 'url' attribute to extract! ${JSON.stringify(matchingObject)}`);
                 vscode.window.showErrorMessage(`ATT&CK: An error occurred while attempting to insert a link - no associated URL found for ${matchingObject.id}!`);
             }
             else {
                 // and we're finally at the point where a link can be inserted
                 editor.edit((editBuilder: vscode.TextEditorEdit) => {
                     if (debug) { output.appendLine(`insertLink: Found a matching object. Inserting the following text: '${link}'`); }
-                    console.log(`insertLink: Found a matching object. Inserting the following text: '${link}'`);
                     editBuilder.replace(currentSelection, link);
                 });
             }
