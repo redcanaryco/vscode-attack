@@ -133,7 +133,16 @@
                     }
                 }
             }
-        ]
+        ],
+        "menus": {
+            "editor/context": [
+                {
+                    "when": "resourceLangId == markdown",
+                    "command": "vscode-attack.insertLink",
+                    "group": "ATT&CK"
+                }
+            ]
+        }
     },
     "activationEvents": [
         "onStartupFinished"

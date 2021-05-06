@@ -128,4 +128,19 @@ describe('Command: insertLink', function () {
         const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
         assert.ok(!result.text.includes(unExpectedLink));
     });
+    it('should preserve newlines when present', async function () {
+        const expectedLink: string = attackObjects[0].url + '\n';
+        const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(1, 0), new vscode.Position(2, 0));
+        let editor: vscode.TextEditor = await vscode.window.showTextDocument(testUri);
+        editor.selections = [highlightedText];
+        console.log(`highlighted text: '${editor.document.getText(editor.selection)}'`);
+        vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
+        // close and reopen to get our new document text
+        vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        editor = await vscode.window.showTextDocument(testUri);
+        console.log(editor.document.getText());
+        const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
+        console.log(`result: '${result.text}'`);
+        assert.ok(result.text.includes(expectedLink));
+    });
 });
