@@ -96,7 +96,6 @@ describe('Software Settings', function () {
         const position: vscode.Position = new vscode.Position(11, sid.length);
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);
-        console.log(JSON.stringify(results));
         assert.strictEqual(results.items.length, 1);
         assert.ok(results.items[0] instanceof vscode.CompletionItem);
         assert.strictEqual(results.items[0].detail, expectedDetail);

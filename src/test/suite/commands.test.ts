@@ -106,7 +106,7 @@ describe('Command: insertLink', function () {
         assert.ok(commands.includes(insertLinkCommand), `No '${insertLinkCommand}' exists.`);
     });
     it('should insert a link for markdown text', async function () {
-        const expectedLink: string = attackObjects[0].url;
+        const expectedMarkdown: string = `[${attackObjects[0].id}](${attackObjects[0].url})`;
         const tid: string = attackObjects[0].id;
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(1, 0), new vscode.Position(1, tid.length));
         let editor: vscode.TextEditor = await vscode.window.showTextDocument(testUri);
@@ -116,31 +116,41 @@ describe('Command: insertLink', function () {
         vscode.commands.executeCommand('workbench.action.closeActiveEditor');
         editor = await vscode.window.showTextDocument(testUri);
         const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
-        assert.ok(result.text.includes(expectedLink));
+        assert.strictEqual(result.text, expectedMarkdown);
     });
-    it('should not insert a link when highlighted text is not an ATT&CK object ID', async function () {
-        const unExpectedLink: string = attackObjects[0].url;
+    it('should do nothing when highlighted text is not an ATT&CK object ID', async function () {
         const text: string = attackObjects[0].name;
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(2, 0), new vscode.Position(2, text.length));
         const editor: vscode.TextEditor|undefined = await vscode.window.showTextDocument(testUri);
         editor.selections = [highlightedText];
         vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
         const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
-        assert.ok(!result.text.includes(unExpectedLink));
+        assert.strictEqual(text, result.text);
     });
-    it('should preserve newlines when present', async function () {
-        const expectedLink: string = attackObjects[0].url + '\n';
+    it('should preserve trailing whitespace when present', async function () {
+        const expectedMarkdown: string = `[${attackObjects[0].id}](${attackObjects[0].url})`;
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(1, 0), new vscode.Position(2, 0));
         let editor: vscode.TextEditor = await vscode.window.showTextDocument(testUri);
         editor.selections = [highlightedText];
-        console.log(`highlighted text: '${editor.document.getText(editor.selection)}'`);
         vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
         // close and reopen to get our new document text
         vscode.commands.executeCommand('workbench.action.closeActiveEditor');
         editor = await vscode.window.showTextDocument(testUri);
-        console.log(editor.document.getText());
+        const result: vscode.TextLine = editor.document.lineAt(highlightedText.anchor.line);
+        assert.strictEqual(result.text, expectedMarkdown);
+    });
+    it('should identify ATT&CK objects without highlighting text', async function () {
+        const expectedMarkdown: string = `[${attackObjects[0].id}](${attackObjects[0].url})`;
+        const tid: string = attackObjects[0].id;
+        const cursor: vscode.Position = new vscode.Position(1, tid.length-1);
+        const highlightedText: vscode.Selection = new vscode.Selection(cursor, cursor);
+        let editor: vscode.TextEditor = await vscode.window.showTextDocument(testUri);
+        editor.selections = [highlightedText];
+        vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
+        // close and reopen to get our new document text
+        vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        editor = await vscode.window.showTextDocument(testUri);
         const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
-        console.log(`result: '${result.text}'`);
-        assert.ok(result.text.includes(expectedLink));
+        assert.strictEqual(result.text, expectedMarkdown);
     });
 });
