@@ -139,7 +139,8 @@ describe('Command: insertLink', function () {
         const result: vscode.TextLine = editor.document.lineAt(highlightedText.anchor.line);
         assert.strictEqual(result.text, expectedMarkdown);
     });
-    it('should identify ATT&CK objects without highlighting text', async function () {
+    it.skip('should identify ATT&CK objects without highlighting text', async function () {
+        // may keep this idea, may not
         const expectedMarkdown: string = `[${attackObjects[0].id}](${attackObjects[0].url})`;
         const tid: string = attackObjects[0].id;
         const cursor: vscode.Position = new vscode.Position(1, tid.length-1);
