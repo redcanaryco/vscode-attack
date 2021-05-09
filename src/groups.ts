@@ -14,6 +14,9 @@ function buildInsertionText(group: Group): string {
     else if (completionFormat === 'name' || completionFormat === 'fullname') {
         insertionText = group.name;
     }
+    else if (completionFormat === 'link') {
+        insertionText = group.url;
+    }
     return insertionText;
 }
 

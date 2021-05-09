@@ -87,25 +87,23 @@ describe('Tactic Settings', function () {
     // bumping timeout on this due to config updates in afterEach()
     // ... potentially taking a long time
     this.timeout(5000);
-
-    let modifiedConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(configSection);
     const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
     const testUri: vscode.Uri = vscode.Uri.file(testPath);
+    const modifiedConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(configSection);
 
     before(async () => {
-        await setTestConfig('completionFormat', 'id', modifiedConfig);
-        await setTestConfig('description', 'short', modifiedConfig);
         await setTestConfig('tactics', true, modifiedConfig);
     });
     beforeEach(() => {
-        modifiedConfig = vscode.workspace.getConfiguration(configSection);
         ignoreConsoleLogs();
     });
     afterEach(async () => {
-        await setTestConfig('completionFormat', 'id', modifiedConfig);
-        await setTestConfig('description', 'short', modifiedConfig);
-        await setTestConfig('tactics', true, modifiedConfig);
         resetState();
+    });
+    after(async () => {
+        await setTestConfig('tactics', undefined, modifiedConfig);
+        await setTestConfig('completionFormat', undefined, modifiedConfig);
+        await setTestConfig('description', undefined, modifiedConfig);
     });
     it('completionFormat: should show only a tactic ID when set to id', async function () {
         const tid = 'TA0002';
@@ -122,6 +120,17 @@ describe('Tactic Settings', function () {
         const tid = 'TA0002';
         const expectedDetail = 'Execution';
         await setTestConfig('completionFormat', 'name', modifiedConfig);
+        const position: vscode.Position = new vscode.Position(6, tid.length);
+        const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
+        assert.ok(results instanceof vscode.CompletionList);
+        assert.strictEqual(results.items.length, 1);
+        assert.ok(results.items[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(results.items[0].detail, expectedDetail);
+    });
+    it('completionFormat: should show only a link when set to link', async function () {
+        const tid = 'TA0002';
+        const expectedDetail = 'https://attack.mitre.org/tactics/TA0002';
+        await setTestConfig('completionFormat', 'link', modifiedConfig);
         const position: vscode.Position = new vscode.Position(6, tid.length);
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);

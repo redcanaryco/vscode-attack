@@ -13,6 +13,9 @@ function buildInsertionText(tactic: Tactic): string {
     else if (completionFormat === 'name' || completionFormat === 'fullname') {
         insertionText = tactic.name;
     }
+    else if (completionFormat === 'link') {
+        insertionText = tactic.url;
+    }
     return insertionText;
 }
 
