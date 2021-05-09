@@ -1,7 +1,6 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as search from '../../search';
 import { techniqueRegex } from '../../helpers';
 import { ATTACKExtensionAPI, configSection, disposables, extensionID, ignoreConsoleLogs, resetState, setTestConfig } from '../suite/testHelpers';
 
@@ -189,93 +188,25 @@ describe('Techniques', function () {
     });
 });
 
-describe('Technique Search', function () {
-    const searchCommand = 'vscode-attack.search';
-    let ext: vscode.Extension<unknown> | undefined;
-
-    before(async function () {
-        ext = vscode.extensions.getExtension(extensionID);
-        await ext?.activate();
-        exports = ext?.exports;
-    });
-    beforeEach(ignoreConsoleLogs);
-    afterEach(resetState);
-    it('search command should exist', function () {
-        vscode.commands.getCommands(true).then((commands: string[]) => {
-            assert.ok(commands.includes(searchCommand), `No '${searchCommand}' exists.`);
-        });
-    });
-    it('should open one webpanel for exact TIDs', function () {
-        const tid = 'T1059.001';
-        const expectedTitle = `${tid}: PowerShell`;
-        search.search(exports.getAllTechniques(), tid).then((panels: Array<vscode.WebviewPanel>) => {
-            panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-            assert.strictEqual(panels.length, 1);
-            assert.strictEqual(panels[0].title, expectedTitle);
-        });
-    });
-    it('should open one webpanel for revoked TIDs', async function () {
-        const tid = 'T1086';
-        const expectedTitle = `${tid}: PowerShell`;
-        const expectedText = `<h3>PowerShell (REVOKED)</h3>`;
-        search.search(exports.getAllTechniques(), tid).then((panels: Array<vscode.WebviewPanel>) => {
-            panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-            assert.strictEqual(panels.length, 1);
-            assert.strictEqual(panels[0].title, expectedTitle);
-            assert.ok(panels[0].webview.html.includes(expectedText));
-        });
-    });
-    it('should open all webpanels containing a technique name', async function () {
-        const name = 'PowerShell';
-        // Should return both 'PowerShell' and 'PowerShell Profile'
-        const expectedTitles: Array<string> = ['T1059.001: PowerShell', 'T1546.013: PowerShell Profile'];
-        search.search(exports.getAllTechniques(), name).then((panels: Array<vscode.WebviewPanel>) => {
-            panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-            assert.strictEqual(panels.length, 2);
-            const titles: Array<string> = panels.map<string>((panel: vscode.WebviewPanel) => { return panel.title; });
-            assert.deepStrictEqual(titles, expectedTitles);
-        });
-    });
-    it('should open all webpanels for lengthy terms in technique descriptions', async function () {
-        // this term is not a technique ID or in any technique name
-        // so the only way it would return an item is if the descriptions are searched
-        const term = 'certutil';
-        const expectedTitle = 'T1140: Deobfuscate/Decode Files or Information';
-        search.search(exports.getAllTechniques(), term).then((panels: Array<vscode.WebviewPanel>) => {
-            panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-            assert.strictEqual(panels.length, 1);
-            assert.strictEqual(panels[0].title, expectedTitle);
-        });
-    });
-    it('should not search for short terms in technique descriptions', async function () {
-        const term = 'the';
-        search.search(exports.getAllTechniques(), term).then((panels: Array<vscode.WebviewPanel>) => {
-            panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-            assert.strictEqual(panels.length, 0);
-        });
-    });
-});
-
 describe('Technique Settings', function () {
     // bumping timeout on this due to config updates in afterEach()
     // ... potentially taking a long time
     this.timeout(5000);
-
-    const modifiedConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(configSection);
     const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
     const testUri: vscode.Uri = vscode.Uri.file(testPath);
+    const modifiedConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(configSection);
 
     before(async () => {
-        await setTestConfig('completionFormat', 'id', modifiedConfig);
-        await setTestConfig('description', 'short', modifiedConfig);
         await setTestConfig('techniques', true, modifiedConfig);
     });
     beforeEach(ignoreConsoleLogs);
     afterEach(async () => {
-        await setTestConfig('completionFormat', 'id', modifiedConfig);
-        await setTestConfig('description', 'short', modifiedConfig);
-        await setTestConfig('techniques', true, modifiedConfig);
         resetState();
+    });
+    after(async () => {
+        await setTestConfig('techniques', undefined, modifiedConfig);
+        await setTestConfig('completionFormat', undefined, modifiedConfig);
+        await setTestConfig('description', undefined, modifiedConfig);
     });
     it('completionFormat: should show only a TID when set to id', async function () {
         const tid = 'T1059.001';
@@ -292,6 +223,17 @@ describe('Technique Settings', function () {
         const tid = 'T1059.001';
         const expectedDetail = 'PowerShell';
         await setTestConfig('completionFormat', 'name', modifiedConfig);
+        const position: vscode.Position = new vscode.Position(1, tid.length);
+        const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
+        assert.ok(results instanceof vscode.CompletionList);
+        assert.strictEqual(results.items.length, 1);
+        assert.ok(results.items[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(results.items[0].detail, expectedDetail);
+    });
+    it('completionFormat: should show only a link when set to link', async function () {
+        const tid = 'T1059.001';
+        const expectedDetail = 'https://attack.mitre.org/techniques/T1059/001';
+        await setTestConfig('completionFormat', 'link', modifiedConfig);
         const position: vscode.Position = new vscode.Position(1, tid.length);
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);

@@ -20,6 +20,10 @@
             {
                 "command": "vscode-attack.search",
                 "title": "ATT&CK: Search ATT&CK Techniques"
+            },
+            {
+                "command": "vscode-attack.insertLink",
+                "title": "ATT&CK: Insert link to ATT&CK website"
             }
         ],
         "configuration": [
@@ -54,6 +58,7 @@
                             "id",
                             "name",
                             "fullname",
+                            "link",
                             "id-name",
                             "id-fullname"
                         ],
@@ -61,6 +66,7 @@
                             "Insert just the ID of the completed item (e.g. 'T1059.001')",
                             "Insert just the name of the completed item (e.g. 'PowerShell')",
                             "Insert the name and parent name if the item is a subtechnique (e.g. 'Command and Scripting Interpreter: PowerShell')",
+                            "Insert a link to the ATT&CK website (e.g. 'https://attack.mitre.org/techniques/T1059/001')",
                             "Insert both the ID and the name of the completed item (e.g. 'T1059.001 PowerShell')",
                             "Insert the ID, name, and parent name if the item is a subtechnique (e.g. 'T1059.001 Command and Scripting Interpreter: PowerShell')"
                         ]
@@ -127,7 +133,16 @@
                     }
                 }
             }
-        ]
+        ],
+        "menus": {
+            "editor/context": [
+                {
+                    "when": "resourceLangId == markdown",
+                    "command": "vscode-attack.insertLink",
+                    "group": "ATT&CK"
+                }
+            ]
+        }
     },
     "activationEvents": [
         "onStartupFinished"

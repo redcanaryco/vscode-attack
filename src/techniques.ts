@@ -15,6 +15,9 @@ function buildInsertionText(technique: Technique): string {
     else if (completionFormat === 'name') {
         insertionText = technique.name;
     }
+    else if (completionFormat === 'link') {
+        insertionText = technique.url;
+    }
     else if (completionFormat === 'fullname') {
         // only apply this format when the technique has a parent
         if (technique.parent !== undefined) {

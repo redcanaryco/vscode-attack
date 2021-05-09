@@ -9,18 +9,17 @@ describe('Groups', function () {
     const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
     const testUri: vscode.Uri = vscode.Uri.file(testPath);
     let ext: vscode.Extension<unknown> | undefined;
-    let modifiedConfig: vscode.WorkspaceConfiguration;
+    let modifiedConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(configSection);
 
     before(async function () {
         ignoreConsoleLogs();
         ext = vscode.extensions.getExtension(extensionID);
         await ext?.activate();
         exports = ext?.exports;
-        modifiedConfig = vscode.workspace.getConfiguration(configSection);
-        await modifiedConfig.update('groups', true, vscode.ConfigurationTarget.Global);
+        await setTestConfig('groups', true, modifiedConfig);
     });
     after(async function () {
-        await modifiedConfig.update('groups', false, vscode.ConfigurationTarget.Global);
+        await setTestConfig('groups', undefined, modifiedConfig);
     });
     beforeEach(ignoreConsoleLogs);
     afterEach(resetState);
@@ -71,21 +70,90 @@ describe('Group Settings', function () {
     // bumping timeout on this due to config updates in afterEach()
     // ... potentially taking a long time
     this.timeout(5000);
-
-    let modifiedConfig: vscode.WorkspaceConfiguration;
     const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
     const testUri: vscode.Uri = vscode.Uri.file(testPath);
+    const modifiedConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(configSection);
 
-    beforeEach(() => {
-        ignoreConsoleLogs();
-        modifiedConfig = vscode.workspace.getConfiguration(configSection);
+    before(async function () {
+        await setTestConfig('groups', true, modifiedConfig);
     });
-    afterEach(async () => {
-        await modifiedConfig.update('groups', false, vscode.ConfigurationTarget.Global);
+    beforeEach(async function () {
+        ignoreConsoleLogs();
+    });
+    afterEach(async function () {
         resetState();
     });
+    after(async function () {
+        await setTestConfig('groups', undefined, modifiedConfig);
+        await setTestConfig('completionFormat', undefined, modifiedConfig);
+    });
+    it('completionFormat: should show only an ID when set to id', async function () {
+        const gid = 'G0007';
+        const expectedDetail: string = gid;
+        await setTestConfig('completionFormat', 'id', modifiedConfig);
+        const position: vscode.Position = new vscode.Position(9, gid.length);
+        const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
+        assert.ok(results instanceof vscode.CompletionList);
+        assert.strictEqual(results.items.length, 1);
+        assert.ok(results.items[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(results.items[0].detail, expectedDetail);
+    });
+    it('completionFormat: should show only a name when set to name', async function () {
+        const gid = 'G0007';
+        const expectedDetail = 'APT28';
+        await setTestConfig('completionFormat', 'name', modifiedConfig);
+        const position: vscode.Position = new vscode.Position(9, gid.length);
+        const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
+        assert.ok(results instanceof vscode.CompletionList);
+        assert.strictEqual(results.items.length, 1);
+        assert.ok(results.items[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(results.items[0].detail, expectedDetail);
+    });
+    it('completionFormat: should show only a link when set to link', async function () {
+        const gid = 'G0007';
+        const expectedDetail = 'https://attack.mitre.org/groups/G0007';
+        await setTestConfig('completionFormat', 'link', modifiedConfig);
+        const position: vscode.Position = new vscode.Position(9, gid.length);
+        const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
+        assert.ok(results instanceof vscode.CompletionList);
+        assert.strictEqual(results.items.length, 1);
+        assert.ok(results.items[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(results.items[0].detail, expectedDetail);
+    });
+    it('completionFormat: should show only a name when set to fullname', async function () {
+        const gid = 'G0007';
+        const expectedDetail = 'APT28';
+        await setTestConfig('completionFormat', 'fullname', modifiedConfig);
+        const position: vscode.Position = new vscode.Position(9, gid.length);
+        const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
+        assert.ok(results instanceof vscode.CompletionList);
+        assert.strictEqual(results.items.length, 1);
+        assert.ok(results.items[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(results.items[0].detail, expectedDetail);
+    });
+    it('completionFormat: should show an ID and name when set to id-name', async function () {
+        const gid = 'G0007';
+        const expectedDetail = `${gid} APT28`;
+        await setTestConfig('completionFormat', 'id-name', modifiedConfig);
+        const position: vscode.Position = new vscode.Position(9, gid.length);
+        const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
+        assert.ok(results instanceof vscode.CompletionList);
+        assert.strictEqual(results.items.length, 1);
+        assert.ok(results.items[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(results.items[0].detail, expectedDetail);
+    });
+    it('completionFormat: should show an ID and name when set to id-fullname', async function () {
+        const gid = 'G0007';
+        const expectedDetail = `${gid} APT28`;
+        await setTestConfig('completionFormat', 'id-fullname', modifiedConfig);
+        const position: vscode.Position = new vscode.Position(9, gid.length);
+        const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
+        assert.ok(results instanceof vscode.CompletionList);
+        assert.strictEqual(results.items.length, 1);
+        assert.ok(results.items[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(results.items[0].detail, expectedDetail);
+    });
     it('should enable the Group providers when set to true', async function () {
-        await setTestConfig('groups', true, modifiedConfig);
         const expectedGID = 'G0007';
         const position: vscode.Position = new vscode.Position(9, expectedGID.length);
         const results = await vscode.commands.executeCommand('vscode.executeHoverProvider', testUri, position);

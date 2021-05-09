@@ -10,6 +10,7 @@ import { init as initSoftware, register as registerSoftware } from './software';
 import { init as initTactics, register as registerTactics } from './tactics';
 import { init as initTechniques, register as registerTechniques } from './techniques';
 import { search } from './search';
+import { insertLink } from './insertLink';
 
 
 // track the providers we have so we can recreate them in case applicableFiles gets updated or they get toggled
@@ -182,6 +183,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
         // commands
         context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.search', () => { search(techniques); }));
         if (debug) { log('Registered command: vscode-attack.search'); }
+        context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.insertLink', () => {
+            const editor: vscode.TextEditor|undefined = vscode.window.activeTextEditor;
+            // assume the user does not want to use links to revoked techniques, which will be redirected
+            // ... to the current technique on the site anyway
+            insertLink(editor, groups, mitigations, software, tactics, helpers.getCurrentTechniques(techniques));
+        }));
+        if (debug) { log('Registered command: vscode-attack.insertLink'); }
         // window
         const statusBarItem: vscode.StatusBarItem|undefined = await createStatusBar(context.globalStorageUri.fsPath);
         if (statusBarItem !== undefined) {
