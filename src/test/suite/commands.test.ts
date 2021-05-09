@@ -75,7 +75,7 @@ describe('Command: search', function () {
 describe('Command: insertLink', function () {
     const events: Array<vscode.Disposable> = [];
     const insertLinkCommand = 'vscode-attack.insertLink';
-    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
+    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'links.md');
     const testUri: vscode.Uri = vscode.Uri.file(testPath);
     let ext: vscode.Extension<unknown> | undefined;
     const attackObjects: Array<Group|Mitigation|Software|Tactic|Technique> = [
@@ -154,7 +154,7 @@ describe('Command: insertLink', function () {
     });
     it('should preserve trailing whitespace when present', function (done) {
         const expectedMarkdown: string = `[TA0002](https://attack.mitre.org/tactics/TA0002)`;
-        const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(6, 0), new vscode.Position(7, 0));
+        const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(4, 0), new vscode.Position(5, 0));
         vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
             events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
                 const result: vscode.TextLine = event.document.lineAt(highlightedText.anchor.line);
