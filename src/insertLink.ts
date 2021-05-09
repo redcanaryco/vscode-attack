@@ -52,19 +52,19 @@ export function insertLink(editor: vscode.TextEditor|undefined, groups: Array<Gr
         let matchingObject: Group|Mitigation|Software|Tactic|Technique|undefined = undefined;
         // search all ATT&CK types for the first matching ID
         if (matchingObject === undefined && configuration.get('groups')) {
-            matchingObject = groups.find((g: Group) => { return g.id === trimmedText; });
+            matchingObject = groups.find((g: Group) => { return g.id === trimmedText || g.name === trimmedText; });
         }
         if (matchingObject === undefined && configuration.get('mitigations')) {
-            matchingObject = mitigations.find((m: Mitigation) => { return m.id === trimmedText; });
+            matchingObject = mitigations.find((m: Mitigation) => { return m.id === trimmedText || m.name === trimmedText; });
         }
         if (matchingObject === undefined && configuration.get('software')) {
-            matchingObject = software.find((s: Software) => { return s.id === trimmedText; });
+            matchingObject = software.find((s: Software) => { return s.id === trimmedText || s.name === trimmedText; });
         }
         if (matchingObject === undefined && configuration.get('tactics')) {
-            matchingObject = tactics.find((t: Tactic) => { return t.id === trimmedText; });
+            matchingObject = tactics.find((t: Tactic) => { return t.id === trimmedText || t.name === trimmedText; });
         }
         if (matchingObject === undefined && configuration.get('techniques')) {
-            matchingObject = techniques.find((t: Technique) => { return t.id === trimmedText; });
+            matchingObject = techniques.find((t: Technique) => { return t.id === trimmedText || t.name === trimmedText; });
         }
         if (matchingObject === undefined) {
             // doesn't look like the highlighted text resembles any ATT&CK object we're aware of

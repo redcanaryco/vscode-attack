@@ -185,7 +185,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
         if (debug) { log('Registered command: vscode-attack.search'); }
         context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.insertLink', () => {
             const editor: vscode.TextEditor|undefined = vscode.window.activeTextEditor;
-            insertLink(editor, groups, mitigations, software, tactics, techniques);
+            // assume the user does not want to use links to revoked techniques, which will be redirected
+            // ... to the current technique on the site anyway
+            insertLink(editor, groups, mitigations, software, tactics, helpers.getCurrentTechniques(techniques));
         }));
         if (debug) { log('Registered command: vscode-attack.insertLink'); }
         // window

@@ -105,7 +105,7 @@ describe('Command: insertLink', function () {
         const commands: Array<string> = await vscode.commands.getCommands(true);
         assert.ok(commands.includes(insertLinkCommand), `No '${insertLinkCommand}' exists.`);
     });
-    it('should insert a link for markdown text', async function () {
+    it('should insert a link for ATT&CK object IDs', async function () {
         const expectedMarkdown: string = `[${attackObjects[0].id}](${attackObjects[0].url})`;
         const tid: string = attackObjects[0].id;
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(1, 0), new vscode.Position(1, tid.length));
@@ -118,9 +118,25 @@ describe('Command: insertLink', function () {
         const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
         assert.strictEqual(result.text, expectedMarkdown);
     });
+    it('should insert a link for ATT&CK object names', async function () {
+        const expectedMarkdown: string = `[${attackObjects[0].name}](${attackObjects[0].url})`;
+        const name: string = attackObjects[0].name;
+        const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(2, 0), new vscode.Position(2, name.length));
+        let editor: vscode.TextEditor = await vscode.window.showTextDocument(testUri);
+        editor.selections = [highlightedText];
+        vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
+        // console.log(editor.document.getText());
+        // close and reopen to get our new document text
+        vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        // console.log('----');
+        // console.log(editor.document.getText());
+        editor = await vscode.window.showTextDocument(testUri);
+        const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
+        assert.strictEqual(result.text, expectedMarkdown);
+    });
     it('should do nothing when highlighted text is not an ATT&CK object ID', async function () {
-        const text: string = attackObjects[0].name;
-        const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(2, 0), new vscode.Position(2, text.length));
+        const text: string = 'certutil';
+        const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(3, 0), new vscode.Position(3, text.length));
         const editor: vscode.TextEditor|undefined = await vscode.window.showTextDocument(testUri);
         editor.selections = [highlightedText];
         vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
