@@ -119,6 +119,7 @@ describe('Command: insertLink', function () {
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(1, 0), new vscode.Position(1, tid.length));
         vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
             events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+                console.log(JSON.stringify(event.contentChanges));
                 const result: vscode.TextLine = event.document.lineAt(highlightedText.active.line);
                 assert.strictEqual(result.text, expectedMarkdown);
                 done();
