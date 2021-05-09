@@ -20,6 +20,8 @@ export const mitigationRegex = /M\d{4}/;
 // everything under this will only show the technique provider's results
 export const minTermLength = 5;
 
+const httpTimeout: number = 5000;
+
 /*
     Send a given message to the MITRE ATT&CK output channel with a timestamp
 */
@@ -69,9 +71,11 @@ export function getVersions(prefix = 'ATT&CK-v'): Promise<Array<string>> {
     };
     return new Promise((resolve, reject) => {
         let filteredTags: Array<string> = new Array<string>();
-        https.get(url, options, (res: IncomingMessage) => {
+        const request = https.get(url, options, (res: IncomingMessage) => {
             res.setEncoding('utf8');
-            res.on('data', (chunk) => { downloadedData = downloadedData.concat(chunk); });
+            res.on('data', (chunk) => {
+                downloadedData = downloadedData.concat(chunk);
+            });
             res.on('error', (err: Error) => {
                 // something bad happened! let the user know
                 log(`Could not retrieve the version list! ${err.message}`);
@@ -94,7 +98,20 @@ export function getVersions(prefix = 'ATT&CK-v'): Promise<Array<string>> {
                     });
                     resolve(filteredTags);
                 }
+                else {
+                    try {
+                        const result: Record<string,string> = JSON.parse(downloadedData);
+                        log(`Error encountered while downloading ATT&CK map versions: ${result['message']}`);
+                    } catch (error) {
+                        log(`No tags were parsed! Something went wrong! Is api.github.com reachable?`);
+                    }
+                    reject('ATT&CK map versions could not be downloaded');
+                }
             });
+        });
+        request.setTimeout(httpTimeout, () => {
+            log(`HTTP request timed out while downloading ATT&CK map versions! Is api.github.com reachable?`);
+            reject('HTTP request timed out');
         });
     });
 }
@@ -131,7 +148,7 @@ export function downloadAttackMap(storageDir: string, version: string): Promise<
                 // Example: v8.0 => enterprise-attack.8.0.json
                 const storagePath: string = path.join(storageDir, `enterprise-attack.${version}.json`);
                 const url = `https://raw.githubusercontent.com/mitre/cti/ATT%26CK-v${version}/enterprise-attack/enterprise-attack.json`;
-                https.get(url, (res: IncomingMessage) => {
+                const request = https.get(url, (res: IncomingMessage) => {
                     res.setEncoding('utf8');
                     res.on('data', (chunk) => { downloadedData = downloadedData.concat(chunk); });
                     res.on('error', (err: Error) => {
@@ -147,6 +164,10 @@ export function downloadAttackMap(storageDir: string, version: string): Promise<
                         resolve(downloadedData);
                     });
                 });
+                request.setTimeout(httpTimeout, () => {
+                    log(`HTTP request timed out while downloading ATT&CK map ${version}! Is raw.githubusercontent.com reachable?`);
+                    reject('HTTP request timed out');
+                });
             }
             else {
                 log(`Could not find version ${version} in the tags list: ${availableVersions}`);
@@ -161,12 +182,20 @@ export function downloadAttackMap(storageDir: string, version: string): Promise<
 */
 export async function downloadLatestAttackMap(storageDir: string): Promise<AttackMap|undefined> {
     let result: AttackMap|undefined = undefined;
-    const availableVersions: Array<string> = await getVersions();
-    // always look for the latest tagged version
-    const version = `${availableVersions.sort()[availableVersions.length - 1]}`;
-    const downloadedData: string = await downloadAttackMap(storageDir, version);
-    // and once it's cached, parse + return it
-    result = JSON.parse(downloadedData) as AttackMap;
+    try {
+        const availableVersions: Array<string> = await getVersions();
+        // always look for the latest tagged version
+        const version = `${availableVersions.sort()[availableVersions.length - 1]}`;
+        try {
+            const downloadedData: string = await downloadAttackMap(storageDir, version);
+            // and once it's cached, parse + return it
+            result = JSON.parse(downloadedData) as AttackMap;
+        } catch (err) {
+            log(`downloadLatestAttackMap() failed due to '${err}'`);
+        }
+    } catch (err) {
+        log(`getVersions() failed due to '${err}'`);
+    }
     return result;
 }
 

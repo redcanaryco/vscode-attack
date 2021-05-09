@@ -18,7 +18,7 @@ describe('Extension', function () {
 
     beforeEach(ignoreConsoleLogs);
     afterEach(resetState);
-    it('should use a cached version of the ATT&CK technique data if available', function (done) {
+    it('should use a cached version of the ATT&CK map if available', function (done) {
         const tmpDir: string = os.tmpdir();
         const tmpPath: string = path.join(tmpDir, enterpriseAttackFilename);
         // queue this up to be deleted after the test has finished
@@ -44,7 +44,7 @@ describe('Extension', function () {
             });
         });
     });
-    it('should download a new version of the ATT&CK technique data if none is cached', async function () {
+    it('should download a new version of the ATT&CK map if none is cached', async function () {
         const tmpDir: string = os.tmpdir();
         // collect the current timestamp
         const currTime: Date = new Date();
@@ -59,7 +59,7 @@ describe('Extension', function () {
         // allow the cached file to be created within 15 seconds of current time, just for some wiggle room
         assert.ok((currTime.getMilliseconds() - cachedFileStats.mtimeMs) < 15000);
     });
-    it('should download a new version of the ATT&CK technique data if the available one is outdated', async function () {
+    it('should download a new version of the ATT&CK map if the available one is outdated', async function () {
         const tmpDir: string = os.tmpdir();
         const tmpPath: string = path.join(tmpDir, 'enterprise-attack.7.2.json');
         const oldMapPath: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack7.json');
@@ -73,6 +73,9 @@ describe('Extension', function () {
         // now check to make sure this is the latest version
         assert.ok(attackMap !== undefined);
         assert.strictEqual(helpers.isAttackMapNewer(attackMap, oldMap), true);
+    });
+    it.skip('should use a cached version of the ATT&CK map if the online version could not be downloaded', async function () {
+        // TODO
     });
     it.skip('toggleStatusBar: should display to the user when a matching file is active', async function () {
         // TODO
