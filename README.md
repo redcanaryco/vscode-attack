@@ -27,6 +27,18 @@ This extension provides a command that allows searching for techniques by their 
 
 For example, searching for the keyword `certutil`, which is not present in any technique name, will yield a result for `T1140 Deobfuscate/Decode Files or Information`, because there is a reference to it in the description. Any matching techniques reveal webpanel with results similar to those found in the hover results.
 
+### Link Insertion
+
+This extension provides a command that allows users to convert existing ATT&CK IDs or names into formatted links back to the corresponding attack.mitre.org page. Currently, Markdown files and links are the only ones supported, and multi-word names, such as `Defense Evasion`, must be fully highlighted; single words and IDs can resolve the correct link with just a cursor placement.
+
+For example, highlighting the text `PowerShell` will replace it with the following:
+
+```markdown
+[PowerShell](https://attack.mitre.org/techniques/T1059/001/)
+```
+
+This applies to all objects that are enabled in the current workspace, so Groups, Mitigations, Tactics, etc. are all supported.
+
 ## Miscellaneous
 
 ### Automatic Updating
