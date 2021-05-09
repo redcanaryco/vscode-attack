@@ -119,10 +119,11 @@ describe('Command: insertLink', function () {
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(1, 0), new vscode.Position(1, tid.length));
         vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
             events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
-                console.log(JSON.stringify(event.contentChanges));
-                const result: vscode.TextLine = event.document.lineAt(highlightedText.active.line);
-                assert.strictEqual(result.text, expectedMarkdown);
-                done();
+                if (event.contentChanges.length > 0) {
+                    const result: vscode.TextLine = event.document.lineAt(highlightedText.active.line);
+                    assert.strictEqual(result.text, expectedMarkdown);
+                    done();
+                }
             }));
             editor.selections = [highlightedText];
             vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
@@ -134,9 +135,11 @@ describe('Command: insertLink', function () {
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(2, 0), new vscode.Position(2, name.length));
         vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
             events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
-                const result: vscode.TextLine = event.document.lineAt(highlightedText.active.line);
-                assert.strictEqual(result.text, expectedMarkdown);
-                done();
+                if (event.contentChanges.length > 0) {
+                    const result: vscode.TextLine = event.document.lineAt(highlightedText.active.line);
+                    assert.strictEqual(result.text, expectedMarkdown);
+                    done();
+                }
             }));
             editor.selections = [highlightedText];
             vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
@@ -158,9 +161,11 @@ describe('Command: insertLink', function () {
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(4, 0), new vscode.Position(5, 0));
         vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
             events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
-                const result: vscode.TextLine = event.document.lineAt(highlightedText.anchor.line);
-                assert.strictEqual(result.text, expectedMarkdown);
-                done();
+                if (event.contentChanges.length > 0) {
+                    const result: vscode.TextLine = event.document.lineAt(highlightedText.anchor.line);
+                    assert.strictEqual(result.text, expectedMarkdown);
+                    done();
+                }
             }));
             editor.selections = [highlightedText];
             vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
