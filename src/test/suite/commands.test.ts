@@ -73,6 +73,7 @@ describe('Command: search', function () {
 });
 
 describe('Command: insertLink', function () {
+    const events: Array<vscode.Disposable> = [];
     const insertLinkCommand = 'vscode-attack.insertLink';
     const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
     const testUri: vscode.Uri = vscode.Uri.file(testPath);
@@ -99,74 +100,84 @@ describe('Command: insertLink', function () {
         await ext?.activate();
         exports = ext?.exports;
     });
-    // beforeEach(ignoreConsoleLogs);
-    afterEach(resetState);
+    afterEach(function () {
+        // clean up any events that were established during our tests
+        let d: vscode.Disposable|undefined = events.pop();
+        while (d !== undefined) {
+            d.dispose();
+            d = events.pop();
+        }
+        resetState();
+    });
     it('insert link command should exist', async function () {
         const commands: Array<string> = await vscode.commands.getCommands(true);
         assert.ok(commands.includes(insertLinkCommand), `No '${insertLinkCommand}' exists.`);
     });
-    it('should insert a link for ATT&CK object IDs', async function () {
+    it('should insert a link for ATT&CK object IDs', function (done) {
         const expectedMarkdown: string = `[${attackObjects[0].id}](${attackObjects[0].url})`;
         const tid: string = attackObjects[0].id;
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(1, 0), new vscode.Position(1, tid.length));
-        let editor: vscode.TextEditor = await vscode.window.showTextDocument(testUri);
-        editor.selections = [highlightedText];
-        vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
-        // close and reopen to get our new document text
-        vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-        editor = await vscode.window.showTextDocument(testUri);
-        const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
-        assert.strictEqual(result.text, expectedMarkdown);
+        vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
+            events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+                const result: vscode.TextLine = event.document.lineAt(highlightedText.active.line);
+                assert.strictEqual(result.text, expectedMarkdown);
+                done();
+            }));
+            editor.selections = [highlightedText];
+            vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
+        });
     });
-    it('should insert a link for ATT&CK object names', async function () {
+    it('should insert a link for ATT&CK object names', function (done) {
         const expectedMarkdown: string = `[${attackObjects[0].name}](${attackObjects[0].url})`;
         const name: string = attackObjects[0].name;
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(2, 0), new vscode.Position(2, name.length));
-        let editor: vscode.TextEditor = await vscode.window.showTextDocument(testUri);
-        editor.selections = [highlightedText];
-        vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
-        // console.log(editor.document.getText());
-        // close and reopen to get our new document text
-        vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-        // console.log('----');
-        // console.log(editor.document.getText());
-        editor = await vscode.window.showTextDocument(testUri);
-        const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
-        assert.strictEqual(result.text, expectedMarkdown);
+        vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
+            events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+                const result: vscode.TextLine = event.document.lineAt(highlightedText.active.line);
+                assert.strictEqual(result.text, expectedMarkdown);
+                done();
+            }));
+            editor.selections = [highlightedText];
+            vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
+        });
     });
     it('should do nothing when highlighted text is not an ATT&CK object ID', async function () {
         const text: string = 'certutil';
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(3, 0), new vscode.Position(3, text.length));
-        const editor: vscode.TextEditor|undefined = await vscode.window.showTextDocument(testUri);
-        editor.selections = [highlightedText];
-        vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
-        const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
-        assert.strictEqual(text, result.text);
+        vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
+            events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+                throw new Error(`Text document changed when it should not have: ${JSON.stringify(event.contentChanges)}`);
+            }));
+            editor.selections = [highlightedText];
+            vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
+        });
     });
-    it('should preserve trailing whitespace when present', async function () {
-        const expectedMarkdown: string = `[${attackObjects[0].id}](${attackObjects[0].url})`;
-        const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(1, 0), new vscode.Position(2, 0));
-        let editor: vscode.TextEditor = await vscode.window.showTextDocument(testUri);
-        editor.selections = [highlightedText];
-        vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
-        // close and reopen to get our new document text
-        vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-        editor = await vscode.window.showTextDocument(testUri);
-        const result: vscode.TextLine = editor.document.lineAt(highlightedText.anchor.line);
-        assert.strictEqual(result.text, expectedMarkdown);
+    it('should preserve trailing whitespace when present', function (done) {
+        const expectedMarkdown: string = `[TA0002](https://attack.mitre.org/tactics/TA0002)`;
+        const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(6, 0), new vscode.Position(7, 0));
+        vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
+            events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+                const result: vscode.TextLine = event.document.lineAt(highlightedText.anchor.line);
+                assert.strictEqual(result.text, expectedMarkdown);
+                done();
+            }));
+            editor.selections = [highlightedText];
+            vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
+        });
     });
-    it('should identify ATT&CK objects without highlighting text', async function () {
-        const expectedMarkdown: string = `[${attackObjects[0].id}](${attackObjects[0].url})`;
-        const tid: string = attackObjects[0].id;
-        const cursor: vscode.Position = new vscode.Position(1, tid.length-1);
+    it('should identify ATT&CK objects without highlighting text', function (done) {
+        const expectedMarkdown: string = `[T1059](https://attack.mitre.org/techniques/T1059)`;
+        const tid: string = 'T1059';
+        const cursor: vscode.Position = new vscode.Position(0, tid.length-1);
         const highlightedText: vscode.Selection = new vscode.Selection(cursor, cursor);
-        let editor: vscode.TextEditor = await vscode.window.showTextDocument(testUri);
-        editor.selections = [highlightedText];
-        vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
-        // close and reopen to get our new document text
-        vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-        editor = await vscode.window.showTextDocument(testUri);
-        const result: vscode.TextLine = editor.document.lineAt(highlightedText.active.line);
-        assert.strictEqual(result.text, expectedMarkdown);
+        vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
+            events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+                const result: vscode.TextLine = event.document.lineAt(highlightedText.active.line);
+                assert.strictEqual(result.text, expectedMarkdown);
+                done();
+            }));
+            editor.selections = [highlightedText];
+            vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
+        });
     });
 });
