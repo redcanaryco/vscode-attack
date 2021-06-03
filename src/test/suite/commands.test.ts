@@ -129,10 +129,42 @@ describe('Command: insertLink', function () {
             vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
         });
     });
+    it('should insert a link for ATT&CK object IDs case insensitively', function (done) {
+        const expectedMarkdown: string = `[${attackObjects[0].id}](${attackObjects[0].url})`;
+        const tid: string = attackObjects[0].id;
+        const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(5, 0), new vscode.Position(5, tid.length));
+        vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
+            events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+                if (event.contentChanges.length > 0) {
+                    const result: vscode.TextLine = event.document.lineAt(highlightedText.active.line);
+                    assert.strictEqual(result.text, expectedMarkdown);
+                    done();
+                }
+            }));
+            editor.selections = [highlightedText];
+            vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
+        });
+    });
     it('should insert a link for ATT&CK object names', function (done) {
         const expectedMarkdown: string = `[${attackObjects[0].name}](${attackObjects[0].url})`;
         const name: string = attackObjects[0].name;
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(2, 0), new vscode.Position(2, name.length));
+        vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
+            events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+                if (event.contentChanges.length > 0) {
+                    const result: vscode.TextLine = event.document.lineAt(highlightedText.active.line);
+                    assert.strictEqual(result.text, expectedMarkdown);
+                    done();
+                }
+            }));
+            editor.selections = [highlightedText];
+            vscode.commands.executeCommand('vscode-attack.insertLink', editor, {techniques: attackObjects});
+        });
+    });
+    it('should insert a link for ATT&CK object names case insensitively', function (done) {
+        const expectedMarkdown: string = `[${attackObjects[0].name}](${attackObjects[0].url})`;
+        const name: string = attackObjects[0].name;
+        const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(6, 0), new vscode.Position(6, name.length));
         vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
             events.push(vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
                 if (event.contentChanges.length > 0) {
