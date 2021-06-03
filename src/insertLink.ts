@@ -15,6 +15,14 @@ function generateLink(text: string, url: string): string|undefined {
     return link;
 }
 
+/*
+    Compare a given string to an object's ID or name case insensitively
+*/
+function isMatching(text: string, attackObject: Group|Mitigation|Software|Tactic|Technique): boolean {
+    const textLower: string = text.toLocaleLowerCase();
+    return attackObject.id.toLocaleLowerCase() === textLower || attackObject.name.toLocaleLowerCase() === textLower;
+}
+
 export function insertLink(editor: vscode.TextEditor|undefined, groups: Array<Group>=[],
                            mitigations: Array<Mitigation>=[], software: Array<Software>=[],
                            tactics: Array<Tactic>=[], techniques: Array<Technique>=[]): void {
@@ -52,20 +60,21 @@ export function insertLink(editor: vscode.TextEditor|undefined, groups: Array<Gr
         let matchingObject: Group|Mitigation|Software|Tactic|Technique|undefined = undefined;
         // search all ATT&CK types for the first matching ID
         if (matchingObject === undefined && configuration.get('groups')) {
-            matchingObject = groups.find((g: Group) => { return g.id === trimmedText || g.name === trimmedText; });
+            matchingObject = groups.find((g: Group) => { return isMatching(trimmedText, g); });
         }
         if (matchingObject === undefined && configuration.get('mitigations')) {
-            matchingObject = mitigations.find((m: Mitigation) => { return m.id === trimmedText || m.name === trimmedText; });
+            matchingObject = mitigations.find((m: Mitigation) => { return isMatching(trimmedText, m); });
         }
         if (matchingObject === undefined && configuration.get('software')) {
-            matchingObject = software.find((s: Software) => { return s.id === trimmedText || s.name === trimmedText; });
+            matchingObject = software.find((s: Software) => { return isMatching(trimmedText, s); });
         }
         if (matchingObject === undefined && configuration.get('tactics')) {
-            matchingObject = tactics.find((t: Tactic) => { return t.id === trimmedText || t.name === trimmedText; });
+            matchingObject = tactics.find((t: Tactic) => { return isMatching(trimmedText, t); });
         }
         if (matchingObject === undefined && configuration.get('techniques')) {
-            matchingObject = techniques.find((t: Technique) => { return t.id === trimmedText || t.name === trimmedText; });
+            matchingObject = techniques.find((t: Technique) => { return isMatching(trimmedText, t); });
         }
+
         if (matchingObject === undefined) {
             // doesn't look like the highlighted text resembles any ATT&CK object we're aware of
             if (debug) { log(`insertLink: Did not find a matching object for '${trimmedText}'`); }
