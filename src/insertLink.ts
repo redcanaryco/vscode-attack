@@ -20,11 +20,7 @@ function generateLink(text: string, url: string): string|undefined {
 */
 function isMatching(text: string, attackObject: Group|Mitigation|Software|Tactic|Technique): boolean {
     const textLower: string = text.toLocaleLowerCase();
-    const result: boolean = attackObject.id.toLocaleLowerCase() === textLower || attackObject.name.toLocaleLowerCase() === textLower;
-    // if (result === true) {
-    //     console.log(`${text} === ${attackObject.id} || ${attackObject.name}`);
-    // }
-    return result;
+    return attackObject.id.toLocaleLowerCase() === textLower || attackObject.name.toLocaleLowerCase() === textLower;
 }
 
 export function insertLink(editor: vscode.TextEditor|undefined, groups: Array<Group>=[],
@@ -60,7 +56,6 @@ export function insertLink(editor: vscode.TextEditor|undefined, groups: Array<Gr
         // text was found, now to figure out which ATT&CK object it identifies
         const trimmedText = highlightedText.trimRight();
         if (debug) { log(`insertLink: Text to insert a link for: '${trimmedText}'`); }
-        console.log(`insertLink: Text to insert a link for: '${trimmedText}'`);
         const configuration: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(configSection);
         let matchingObject: Group|Mitigation|Software|Tactic|Technique|undefined = undefined;
         // search all ATT&CK types for the first matching ID

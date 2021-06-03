@@ -130,7 +130,7 @@ describe('Command: insertLink', function () {
         });
     });
     it('should insert a link for ATT&CK object IDs case insensitively', function (done) {
-        const expectedMarkdown: string = `[${attackObjects[0].id}](${attackObjects[0].url})`;
+        const expectedMarkdown: string = `[${attackObjects[0].id.toLocaleLowerCase()}](${attackObjects[0].url})`;
         const tid: string = attackObjects[0].id;
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(5, 0), new vscode.Position(5, tid.length));
         vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
@@ -162,7 +162,7 @@ describe('Command: insertLink', function () {
         });
     });
     it('should insert a link for ATT&CK object names case insensitively', function (done) {
-        const expectedMarkdown: string = `[${attackObjects[0].name}](${attackObjects[0].url})`;
+        const expectedMarkdown: string = `[${attackObjects[0].name.toLocaleLowerCase()}](${attackObjects[0].url})`;
         const name: string = attackObjects[0].name;
         const highlightedText: vscode.Selection = new vscode.Selection(new vscode.Position(6, 0), new vscode.Position(6, name.length));
         vscode.window.showTextDocument(testUri).then((editor: vscode.TextEditor) => {
