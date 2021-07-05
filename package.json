@@ -12,6 +12,12 @@
     "engines": {
         "vscode": "^1.47.0"
     },
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": "limited",
+            "description": "This extension has disabled the Search functionality for untrusted workspaces"
+        }
+    },
     "categories": [
         "Other"
     ],
@@ -140,6 +146,12 @@
                     "when": "resourceLangId == markdown",
                     "command": "vscode-attack.insertLink",
                     "group": "ATT&CK"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "when": "isWorkspaceTrusted == true",
+                    "command": "vscode-attack.search"
                 }
             ]
         }

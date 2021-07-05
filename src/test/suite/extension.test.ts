@@ -289,3 +289,26 @@ describe('General Settings', function () {
         consoleLogger('Putting this here to avoid linter errors on no-empty-function');
     });
 });
+
+describe('Workspace Trust', function () {
+    let ext: vscode.Extension<unknown> | undefined;
+    let modifiedConfig: vscode.WorkspaceConfiguration;
+    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
+    const testUri: vscode.Uri = vscode.Uri.file(testPath);
+
+    before(async function  () {
+        ignoreConsoleLogs();
+        ext = vscode.extensions.getExtension(extensionID);
+        await ext?.activate();
+        modifiedConfig = vscode.workspace.getConfiguration(configSection);
+    });
+    beforeEach(ignoreConsoleLogs);
+    afterEach(resetState);
+    it.skip('should enable Search command when workspace is trusted', async function () {
+        await setTestConfig('security.workspace.trust.enabled', true, modifiedConfig);
+
+    });
+    it.skip('should disable Search command when workspace is untrusted', async function () {
+        await setTestConfig('security.workspace.trust.enabled', false, modifiedConfig);
+    });
+});
