@@ -172,13 +172,13 @@ describe('Extension', function () {
     });
     it('getVersions: should return one tag for a very specific prefix', async function () {
         const prefix = 'subtechniques-beta';
-        const tags: Array<string>|undefined = await helpers.getVersions(prefix);
+        const tags: Array<string> | undefined = await helpers.getVersions(prefix);
         assert.ok(tags !== undefined);
         assert.strictEqual(tags.length, 1);
         assert.strictEqual(tags[0], prefix);
     });
     it('getVersions: should return all tags for an undefined prefix', async function () {
-        const tags: Array<string>|undefined = await helpers.getVersions('');
+        const tags: Array<string> | undefined = await helpers.getVersions('');
         assert.ok(tags !== undefined);
         // lazy way of checking this and not having to worry about every new tag added afterwards
         // if there's 20+ tags we're most likely catching all of them
@@ -293,22 +293,33 @@ describe('General Settings', function () {
 describe('Workspace Trust', function () {
     let ext: vscode.Extension<unknown> | undefined;
     let modifiedConfig: vscode.WorkspaceConfiguration;
-    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
-    const testUri: vscode.Uri = vscode.Uri.file(testPath);
+    const searchCommand = 'vscode-attack.search';
 
-    before(async function  () {
+    before(async function () {
         ignoreConsoleLogs();
         ext = vscode.extensions.getExtension(extensionID);
         await ext?.activate();
-        modifiedConfig = vscode.workspace.getConfiguration(configSection);
+        modifiedConfig = vscode.workspace.getConfiguration();
+    });
+    after(async function () {
+        await setTestConfig('security.workspace.trust.enabled', undefined, modifiedConfig);
     });
     beforeEach(ignoreConsoleLogs);
     afterEach(resetState);
-    it.skip('should enable Search command when workspace is trusted', async function () {
+    it('should enable Search command when workspace is trusted', async function () {
         await setTestConfig('security.workspace.trust.enabled', true, modifiedConfig);
-
+        vscode.commands.getCommands(true).then((commands: string[]) => {
+            // consoleLogger(JSON.stringify(modifiedConfig.get('security.workspace.trust.enabled')));
+            const command = commands.find((cmd) => { return cmd === searchCommand; });
+            assert.strictEqual(searchCommand, command, `No '${searchCommand}' exists.`);
+        });
     });
-    it.skip('should disable Search command when workspace is untrusted', async function () {
+    it('should disable Search command when workspace is untrusted', async function () {
         await setTestConfig('security.workspace.trust.enabled', false, modifiedConfig);
+        vscode.commands.getCommands(true).then((commands: string[]) => {
+            // consoleLogger(JSON.stringify(modifiedConfig.get('security.workspace.trust.enabled')));
+            const command = commands.find((cmd) => { return cmd === searchCommand; });
+            assert.strictEqual(undefined, command, `'${searchCommand}' exists when it should not.`);
+        });
     });
 });
