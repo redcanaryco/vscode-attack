@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2021-07-12
+
+- Added support for Trusted Workspaces feature. Search command is disabled in untrusted workspaces, but all other features are enabled
+
 ## [1.1.1] - 2021-06-03
 
 - Corrected `vscode-attack.insertLink` behavior to support case insensitive terms, such as `t1059` or `POWERSHELL`
@@ -33,7 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Completions and Hovers for ATT&CK Groups, Software, and Mitigations
 - Added new settings to toggle various providers based on ATT&CK item type (`vscode-attack.groups`, `.mitigations`, `.tactics`, etc.)
 
-[Unreleased]: https://github.com/redcanaryco/vscode-attack/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/redcanaryco/vscode-attack/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/redcanaryco/vscode-attack/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/redcanaryco/vscode-attack/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/redcanaryco/vscode-attack/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/redcanaryco/vscode-attack/compare/v0.1.1...v1.0.0
