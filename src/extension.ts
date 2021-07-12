@@ -191,8 +191,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
         }));
         if (debug) { log('Registered configuration watcher'); }
         // commands
-        context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.search', () => { search(techniques); }));
-        if (debug) { log('Registered command: vscode-attack.search'); }
+        if (vscode.workspace.isTrusted) {
+            context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.search', () => { search(techniques); }));
+            if (debug) { log('Registered command: vscode-attack.search'); }
+        }
+        else {
+            const trustWatcher: vscode.Disposable = vscode.workspace.onDidGrantWorkspaceTrust(() => {
+                context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.search', () => { search(techniques); }));
+                if (debug) { log('Registered command: vscode-attack.search'); }
+            });
+            context.subscriptions.push(trustWatcher);
+            if (debug) { log('Registered workspace trust watcher'); }
+        }
         context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.insertLink', () => {
             const editor: vscode.TextEditor|undefined = vscode.window.activeTextEditor;
             // assume the user does not want to use links to revoked techniques, which will be redirected
