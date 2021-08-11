@@ -120,7 +120,6 @@ async function createStatusBar(storageDir: string): Promise<vscode.StatusBarItem
         statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
         statusBarItem.accessibilityInformation = {label: itemText};
         statusBarItem.text = itemText;
-        statusBarItem.command = 'vscode-attack.search';
         // set a callback for when the user changes the current editor
         vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor|undefined) => {
             if (statusBarItem !== undefined) { toggleStatusBar(statusBarItem, editor); }
