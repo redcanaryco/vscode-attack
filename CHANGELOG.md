@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Completions and Hovers for ATT&CK Groups, Software, and Mitigations
 - Added new settings to toggle various providers based on ATT&CK item type (`vscode-attack.groups`, `.mitigations`, `.tactics`, etc.)
 
-[Unreleased]: https://github.com/redcanaryco/vscode-attack/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/redcanaryco/vscode-attack/compare/v1.2.0...HEAD
 [1.2.0]: https://github.com/redcanaryco/vscode-attack/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/redcanaryco/vscode-attack/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/redcanaryco/vscode-attack/compare/v1.0.0...v1.1.0
