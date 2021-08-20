@@ -107,7 +107,7 @@ export async function search(techniques: Array<Technique>): Promise<Array<vscode
     }
     else if (input.length < minTermLength) {
         log('Search term is very short. Asking user if they want to continue');
-        const confirmationMessage = `Searching for '${input}' may return more results than expected.\n\nClick Ok to search anyway.`;
+        const confirmationMessage = `Searching for '${input}' may return more results than expected.\n\nAre you sure?`;
         const confirmation: string|undefined = await vscode.window.showWarningMessage(confirmationMessage, {modal: true}, 'Ok');
         if (confirmation === undefined) {
             if (debug) { log(`Search for '${input}' cancelled!`); }
