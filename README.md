@@ -1,7 +1,7 @@
 # VSCode-ATT&CK
 
 This extension provides [IntelliSense-like](https://code.visualstudio.com/docs/editor/intellisense)
-support for MITRE ATT&CK® tactics, techniques, and sub-techniques.
+support for MITRE ATT&CK® objects, including tactics, techniques, and sub-techniques.
 
 ## Key features
 
