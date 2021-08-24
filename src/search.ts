@@ -40,48 +40,24 @@ function buildTechnique(technique: Technique): string {
 }
 
 /*
-    Build the webview panel body from the given technique
-*/
-function buildPageBody(technique: Technique, pageNum: number, numPages: number, enableNav: boolean = false): string {
-    if (debug) { log(`search: Opening webview for ${technique.name} (${technique.id})`); }
-    let navButtons: string = '';
-    if (enableNav) {
-        navButtons = [
-            '    <hr>',
-            `    <button id="previous-technique">&lt;&lt;</button> ${pageNum}/${numPages} <button id="next-technique">&gt;&gt;</button>`,
-        ].join('\n');
-    }
-    return [
-        '<body>',
-        `    <div id="${technique.id}" class="techniques">\n${buildTechnique(technique)}</div>`,
-        navButtons,
-        '</body>',
-    ].join('\n');
-}
-
-/*
     Build the whole webview panel including relevant metadata and resolving script/style paths
 */
-function buildPage(body: string, scriptUri: vscode.Uri): string {
+function buildPage(body: string, scriptUri: vscode.Uri|undefined): string {
     const nonce: string = getNonce();
-    return [
-        '<!DOCTYPE html>',
-        '<html lang="en">',
-        '  <head>',
-        '    <meta charset="UTF-8">',
-        `    <meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'nonce-${nonce}\'">`,
-        '  </head>',
-        '  <body>',
-        body,
-        '  </body>',
-        `<script nonce="${nonce}" src="${scriptUri}"></script>`,
-        '</html>'
-    ].join('\n');
+    let page: string = `<!DOCTYPE html>\n<html lang="en">\n  <head>\n    <meta charset="UTF-8">`;
+    if (scriptUri !== undefined) {
+        page += `    <meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'nonce-${nonce}\'">\n`;
+    }
+    page += `  </head>\n  <body>\n${body}\n  </body>\n`;
+    if (scriptUri !== undefined) {
+        page += `<script nonce="${nonce}" src="${scriptUri}"></script>\n`;
+    }
+    page += '</html>\n';
+    return page;
 }
 
 /*
     create a webview which displays the results of the Search command
-    and updates the panel as the user clicks through sections
 */
 function displayPanel(techniques: Array<Technique>, extensionPath: string): vscode.WebviewPanel {
     const resources: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(extensionPath), 'src', 'resources');
@@ -92,15 +68,9 @@ function displayPanel(techniques: Array<Technique>, extensionPath: string): vsco
         localResourceRoots: [resources]
     };
     const panel: vscode.WebviewPanel = vscode.window.createWebviewPanel('vscode-attack', `ATT&CK: Search Results`, vscode.ViewColumn.One, panelOptions);
-    // Local path to main script run in the webview
-    const scriptUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(resources, 'navigation.js'));
-    // only add navigation buttons + javascript when there is more than one technique
-    const enableNavigation: boolean = techniques.length > 1;
-    // start with just showing the first returned result
     let currentPosition: number = 0;
-    panel.title = techniques[currentPosition].id;
-    let body: string = buildPageBody(techniques[currentPosition], currentPosition+1, techniques.length, enableNavigation);
-    panel.webview.html = buildPage(body, scriptUri);
+    // start with just showing the first returned result
+    updatePanel(panel, techniques[currentPosition], currentPosition, techniques.length, resources);
     // when the user clicks a nav button, update the webview with the next section
     panel.webview.onDidReceiveMessage((message) => {
         switch (message.command) {
@@ -112,12 +82,27 @@ function displayPanel(techniques: Array<Technique>, extensionPath: string): vsco
                 currentPosition = (currentPosition + 1) >= techniques.length ? 0 : currentPosition + 1;
                 break;
         }
-        panel.title = techniques[currentPosition].id;
-        body = buildPageBody(techniques[currentPosition], currentPosition+1, techniques.length, enableNavigation);
-        panel.webview.html = buildPage(body, scriptUri);
+        updatePanel(panel, techniques[currentPosition], currentPosition, techniques.length, resources);
     });
-    // console.log(`Rendered ${techniques.length} results.`);
     return panel;
+}
+
+/*
+    updates the panel as the user clicks through sections
+*/
+function updatePanel(panel: vscode.WebviewPanel, technique: Technique, currentPosition: number, totalTechniques: number, resourceUri: vscode.Uri) {
+    if (debug) { log(`search: Opening webview for ${technique.name} (${technique.id})`); }
+    let scriptUri: vscode.Uri | undefined = undefined;
+    let body: string = `<div id="${technique.id}" class="techniques">\n${buildTechnique(technique)}</div>`;
+    // only add navigation buttons + javascript when there is more than one technique
+    const enableNavigation: boolean = totalTechniques > 1;
+    if (enableNavigation) {
+        body += `<hr><button id="previous-technique">&lt;&lt;</button> ${currentPosition+1}/${totalTechniques} <button id="next-technique">&gt;&gt;</button>`;
+        scriptUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(resourceUri, 'navigation.js'));
+    }
+    // update the panel to display the new technique
+    panel.title = `${technique.id}: ${technique.name}`;
+    panel.webview.html = buildPage(body, scriptUri);
 }
 
 function getNonce(): string {
