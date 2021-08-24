@@ -191,12 +191,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
         if (debug) { log('Registered configuration watcher'); }
         // commands
         if (vscode.workspace.isTrusted) {
-            context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.search', () => { search(techniques); }));
+            context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.search', () => { search(techniques, context.extensionPath); }));
             if (debug) { log('Registered command: vscode-attack.search'); }
         }
         else {
             const trustWatcher: vscode.Disposable = vscode.workspace.onDidGrantWorkspaceTrust(() => {
-                context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.search', () => { search(techniques); }));
+                context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.search', () => { search(techniques, context.extensionPath); }));
                 if (debug) { log('Registered command: vscode-attack.search'); }
             });
             context.subscriptions.push(trustWatcher);
