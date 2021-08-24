@@ -21,35 +21,45 @@ describe('Command: search', function () {
             assert.ok(commands.includes(searchCommand), `No '${searchCommand}' exists.`);
         });
     });
-    it('should open one webpanel for exact TIDs', function () {
+    it('should open only one page in the webpanel for exact TIDs', function () {
         const tid = 'T1059.001';
         const expectedTitle = `${tid}: PowerShell`;
-        search.search(exports.getAllTechniques(), tid).then((panels: Array<vscode.WebviewPanel>) => {
-            panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-            assert.strictEqual(panels.length, 1);
-            assert.strictEqual(panels[0].title, expectedTitle);
+        search.search(exports.getAllTechniques(), tid).then((panel: vscode.WebviewPanel|undefined) => {
+            assert.notStrictEqual(panel, undefined);
+            if (panel !== undefined) {
+                disposables.push(panel);
+                assert.strictEqual(panel.title, expectedTitle);
+                // exact TIDs shouldn't return anything with javascript or navigation
+                assert.ok(!panel.webview.html.includes('<script'));
+                assert.ok(!panel.webview.html.includes('<button'));
+            }
         });
     });
-    it('should open one webpanel for revoked TIDs', async function () {
+    it('should modify the header for revoked TIDs', async function () {
         const tid = 'T1086';
         const expectedTitle = `${tid}: PowerShell`;
         const expectedText = `<h3>PowerShell (REVOKED)</h3>`;
-        search.search(exports.getAllTechniques(), tid).then((panels: Array<vscode.WebviewPanel>) => {
-            panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-            assert.strictEqual(panels.length, 1);
-            assert.strictEqual(panels[0].title, expectedTitle);
-            assert.ok(panels[0].webview.html.includes(expectedText));
+        search.search(exports.getAllTechniques(), tid).then((panel: vscode.WebviewPanel|undefined) => {
+            assert.notStrictEqual(panel, undefined);
+            if (panel !== undefined) {
+                disposables.push(panel);
+                assert.strictEqual(panel.title, expectedTitle);
+                assert.ok(panel.webview.html.includes(expectedText));
+            }
         });
     });
     it('should open all webpanels containing a technique name', async function () {
         const name = 'PowerShell';
         // Should return both 'PowerShell' and 'PowerShell Profile'
         const expectedTitles: Array<string> = ['T1059.001: PowerShell', 'T1546.013: PowerShell Profile'];
-        search.search(exports.getAllTechniques(), name).then((panels: Array<vscode.WebviewPanel>) => {
-            panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-            assert.strictEqual(panels.length, 2);
-            const titles: Array<string> = panels.map<string>((panel: vscode.WebviewPanel) => { return panel.title; });
-            assert.deepStrictEqual(titles, expectedTitles);
+        search.search(exports.getAllTechniques(), name).then((panel: vscode.WebviewPanel|undefined) => {
+            assert.notStrictEqual(panel, undefined);
+            if (panel !== undefined) {
+                disposables.push(panel);
+                assert.strictEqual(panel.title, expectedTitles[0]);
+                assert.ok(panel.webview.html.includes('<script'));
+                assert.ok(panel.webview.html.includes('<button'));
+            }
         });
     });
     it('should open all webpanels for lengthy terms in technique descriptions', async function () {
@@ -57,17 +67,18 @@ describe('Command: search', function () {
         // so the only way it would return an item is if the descriptions are searched
         const term = 'certutil';
         const expectedTitle = 'T1140: Deobfuscate/Decode Files or Information';
-        search.search(exports.getAllTechniques(), term).then((panels: Array<vscode.WebviewPanel>) => {
-            panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-            assert.strictEqual(panels.length, 1);
-            assert.strictEqual(panels[0].title, expectedTitle);
+        search.search(exports.getAllTechniques(), term).then((panel: vscode.WebviewPanel|undefined) => {
+            assert.notStrictEqual(panel, undefined);
+            if (panel !== undefined) {
+                disposables.push(panel);
+                assert.strictEqual(panel.title, expectedTitle);
+            }
         });
     });
     it('should not search for short terms in technique descriptions', async function () {
         const term = 'the';
-        search.search(exports.getAllTechniques(), term).then((panels: Array<vscode.WebviewPanel>) => {
-            panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-            assert.strictEqual(panels.length, 0);
+        search.search(exports.getAllTechniques(), term).then((panel: vscode.WebviewPanel|undefined) => {
+            assert.strictEqual(panel, undefined);
         });
     });
 });
