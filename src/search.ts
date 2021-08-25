@@ -35,6 +35,12 @@ function buildTechnique(technique: Technique): string {
 
     // description
     mdBuilder.appendMarkdown(`#### Description\n\n`);
+    // some markup contains unintentionally escaped </code> markup
+    // usually due to a file path (e.g. <code>%systemdir%\</code>)
+    // so let's fix that up so the markdown renders properly
+    if (/[^\\]\\\<\/code\>/.test(technique.description.long)) {
+        technique.description.long = technique.description.long.replace('\\</code>', '\\\\</code>');
+    }
     mdBuilder.appendMarkdown(technique.description.long);
     return md.render(mdBuilder.value);
 }
@@ -42,15 +48,17 @@ function buildTechnique(technique: Technique): string {
 /*
     Build the whole webview panel including relevant metadata and resolving script/style paths
 */
-function buildPage(body: string, scriptUri: vscode.Uri|undefined): string {
-    const nonce: string = getNonce();
+function buildPage(body: string, webview: vscode.Webview, resourceUri: vscode.Uri, enableNavigation: boolean = false): string {
+    const scriptUri: vscode.Uri = webview.asWebviewUri(vscode.Uri.joinPath(resourceUri, 'navigation.js'));
+    const styleUri: vscode.Uri = webview.asWebviewUri(vscode.Uri.joinPath(resourceUri, 'styles.css'));
     let page: string = `<!DOCTYPE html>\n<html lang="en">\n  <head>\n    <meta charset="UTF-8">`;
-    if (scriptUri !== undefined) {
-        page += `    <meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'nonce-${nonce}\'">\n`;
-    }
+    // define our CSP as only allowing styles and external scripts to be loaded from resources
+    let contentSecurityPolicy: string = `default-src \'none\'; style-src ${webview.cspSource}; script-src-elem ${webview.cspSource}`;
+    page += `    <meta http-equiv="Content-Security-Policy" content="${contentSecurityPolicy}">\n`;
+    page += `    <link rel="stylesheet" href="${styleUri}">\n`;
     page += `  </head>\n  <body>\n${body}\n  </body>\n`;
-    if (scriptUri !== undefined) {
-        page += `<script nonce="${nonce}" src="${scriptUri}"></script>\n`;
+    if (enableNavigation) {
+        page += `<script src="${scriptUri}"></script>\n`;
     }
     page += '</html>\n';
     return page;
@@ -97,21 +105,12 @@ function updatePanel(panel: vscode.WebviewPanel, technique: Technique, currentPo
     // only add navigation buttons + javascript when there is more than one technique
     const enableNavigation: boolean = totalTechniques > 1;
     if (enableNavigation) {
-        body += `<hr><button id="previous-technique">&lt;&lt;</button> ${currentPosition+1}/${totalTechniques} <button id="next-technique">&gt;&gt;</button>`;
+        body += `<hr><button id="previous-technique" class="navigation">&lt;&lt;</button><div id="nav-summary">${currentPosition+1}/${totalTechniques}</div><button id="next-technique" class="navigation">&gt;&gt;</button>`;
         scriptUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(resourceUri, 'navigation.js'));
     }
     // update the panel to display the new technique
     panel.title = `${technique.id}: ${technique.name}`;
-    panel.webview.html = buildPage(body, scriptUri);
-}
-
-function getNonce(): string {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
+    panel.webview.html = buildPage(body, panel.webview, resourceUri, enableNavigation);
 }
 
 /*
