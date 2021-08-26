@@ -21,58 +21,46 @@ describe('Command: search', function () {
             assert.ok(commands.includes(searchCommand), `No '${searchCommand}' exists.`);
         });
     });
-    it('should open one webpanel for exact TIDs', function () {
-        const tid = 'T1059.001';
-        const expectedTitle = `${tid}: PowerShell`;
-        const panels: Array<vscode.WebviewPanel> = search.doSearch(tid, exports.getAllTechniques());
-        panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-        assert.strictEqual(panels.length, 1);
-        assert.strictEqual(panels[0].title, expectedTitle);
+    it('should return one technique for exact TIDs', function () {
+        const term = 'T1059.001';
+        const results: Array<Technique> = search.doSearch(term, exports.getAllTechniques());
+        assert.strictEqual(results.length, 1);
+        assert.strictEqual(results[0].id, term);
     });
-    it('should open one webpanel for revoked TIDs', function () {
-        const tid = 'T1086';
-        const expectedTitle = `${tid}: PowerShell`;
-        const expectedText = `<h3>PowerShell (REVOKED)</h3>`;
-        const panels: Array<vscode.WebviewPanel> = search.doSearch(tid, exports.getAllTechniques());
-        panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-        assert.strictEqual(panels.length, 1);
-        assert.strictEqual(panels[0].title, expectedTitle);
-        assert.ok(panels[0].webview.html.includes(expectedText));
+    it('should still return revoked TIDs', async function () {
+        const term = 'T1086';
+        const results: Array<Technique> = search.doSearch(term, exports.getAllTechniques());
+        assert.strictEqual(results.length, 1);
+        assert.strictEqual(results[0].id, term);
     });
-    it('should open all webpanels containing a technique name', function () {
-        const name = 'PowerShell';
+    it('should return all techniques with name containing a term', async function () {
+        const term = 'PowerShell';
         // Should return both 'PowerShell' and 'PowerShell Profile'
-        const expectedTitles: Array<string> = ['T1059.001: PowerShell', 'T1546.013: PowerShell Profile'];
-        const panels: Array<vscode.WebviewPanel> = search.doSearch(name, exports.getAllTechniques());
-        panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-        assert.strictEqual(panels.length, 2);
-        const titles: Array<string> = panels.map<string>((panel: vscode.WebviewPanel) => { return panel.title; });
-        assert.deepStrictEqual(titles, expectedTitles);
+        const expected: Array<string> = new Array<string>('T1059.001', 'T1546.013');
+        const results: Array<Technique> = search.doSearch(term, exports.getAllTechniques());
+        const actual: Array<string> = results.map<string>((t: Technique) => { return t.id; });
+        assert.deepStrictEqual(actual, expected);
     });
-    it('should open all webpanels for lengthy terms in technique descriptions', function () {
+    it('should search technique descriptions for a term when it is not in any technique names', function () {
         // this term is not a technique ID or in any technique name
         // so the only way it would return an item is if the descriptions are searched
         const term = 'certutil';
-        const expectedTitle = 'T1140: Deobfuscate/Decode Files or Information';
-        const panels: Array<vscode.WebviewPanel> = search.doSearch(term, exports.getAllTechniques());
-        panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-        assert.strictEqual(panels.length, 1);
-        assert.strictEqual(panels[0].title, expectedTitle);
+        const expected = 'T1140';       // Deobfuscate/Decode Files or Information
+        const results: Array<Technique> = search.doSearch(term, exports.getAllTechniques());
+        assert.strictEqual(results.length, 1);
+        assert.strictEqual(results[0].id, expected);
     });
-    it('should search for short terms in technique descriptions', function () {
+    it('should search for short terms in technique names', function () {
         const term = 'xdg';
-        const expectedTitle = 'T1547.013: XDG Autostart Entries';
-        const panels: Array<vscode.WebviewPanel> = search.doSearch(term, exports.getAllTechniques());
-        panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-        assert.strictEqual(panels.length, 1);
-        assert.strictEqual(panels[0].title, expectedTitle);
+        const expected = 'T1547.013';   // XDG Autostart Entries
+        const results: Array<Technique> = search.doSearch(term, exports.getAllTechniques());
+        assert.strictEqual(results.length, 1);
+        assert.strictEqual(results[0].id, expected);
     });
-
     it('should not return anything when an empty string is given', function () {
-        const panels: Array<vscode.WebviewPanel> = search.doSearch('', exports.getAllTechniques());
-        panels.forEach((panel: vscode.WebviewPanel) => { disposables.push(panel); });
-        console.log(JSON.stringify(panels));
-        assert.strictEqual(panels.length, 0);
+        const term = '';
+        const results: Array<Technique> = search.doSearch(term, exports.getAllTechniques());
+        assert.strictEqual(results.length, 0);
     });
 });
 
