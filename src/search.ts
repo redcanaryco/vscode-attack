@@ -100,13 +100,11 @@ function displayPanel(techniques: Array<Technique>, extensionPath: string): vsco
 */
 function updatePanel(panel: vscode.WebviewPanel, technique: Technique, currentPosition: number, totalTechniques: number, resourceUri: vscode.Uri) {
     if (debug) { log(`search: Opening webview for ${technique.name} (${technique.id})`); }
-    let scriptUri: vscode.Uri | undefined = undefined;
     let body: string = `<div id="${technique.id}" class="techniques">\n${buildTechnique(technique)}</div>`;
     // only add navigation buttons + javascript when there is more than one technique
     const enableNavigation: boolean = totalTechniques > 1;
     if (enableNavigation) {
         body += `<hr><button id="previous-technique" class="navigation">&lt;&lt;</button><div id="nav-summary">${currentPosition+1}/${totalTechniques}</div><button id="next-technique" class="navigation">&gt;&gt;</button>`;
-        scriptUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(resourceUri, 'navigation.js'));
     }
     // update the panel to display the new technique
     panel.title = `${technique.id}: ${technique.name}`;
