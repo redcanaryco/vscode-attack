@@ -48,15 +48,15 @@ describe('Command: search', function () {
             }
         });
     });
-    it('should open all webpanels containing a technique name', async function () {
+    it('should open a navigatable webpanel containing the first matched technique', async function () {
         const name = 'PowerShell';
-        // Should return both 'PowerShell' and 'PowerShell Profile'
-        const expectedTitles: Array<string> = ['T1059.001: PowerShell', 'T1546.013: PowerShell Profile'];
+        // Should return both 'PowerShell' and 'PowerShell Profile', but only 'PowerShell' should show
+        const expectedTitle: string = 'T1059.001: PowerShell';
         search.search(exports.getAllTechniques(), name).then((panel: vscode.WebviewPanel|undefined) => {
             assert.notStrictEqual(panel, undefined);
             if (panel !== undefined) {
                 disposables.push(panel);
-                assert.strictEqual(panel.title, expectedTitles[0]);
+                assert.strictEqual(panel.title, expectedTitle);
                 assert.ok(panel.webview.html.includes('<script'));
                 assert.ok(panel.webview.html.includes('<button'));
             }
