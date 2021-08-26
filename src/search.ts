@@ -116,20 +116,11 @@ function updatePanel(panel: vscode.WebviewPanel, technique: Technique, currentPo
 /*
     Search the list of ATT&CK objects for whatever the user is looking for
 */
-export async function search(techniques: Array<Technique>, extensionPath: string, input: string|undefined = undefined): Promise<vscode.WebviewPanel|undefined> {
-    let panel: vscode.WebviewPanel|undefined = undefined;
+export function doSearch(input: string, techniques: Array<Technique>): Array<Technique> {
     let results: Array<Technique> = new Array<Technique>();
-    if (debug) { log('Prompting user for a search term'); }
-    if (input === undefined) {
-        const inBoxOpt: vscode.InputBoxOptions = {
-            placeHolder: 'Technique Name or ID',
-            prompt: 'Search for an ATT&CK term'
-        };
-        input = await vscode.window.showInputBox(inBoxOpt, undefined);
-    }
-    // if the user cancels the prompt there may be no input to search
-    if (input === undefined || input.length < minTermLength) {
-        log('No input provided. Cancelling search.');
+    if (input.length === 0) {
+        // check input here too just in case
+        if (debug) { log('Cancelling search. User provided empty string'); }
     }
     else {
         const revokedTechniques: Array<Technique> = getRevokedTechniques(techniques);
@@ -152,10 +143,46 @@ export async function search(techniques: Array<Technique>, extensionPath: string
             if (debug) { log(`Could not find technique matching '${input}'`); }
             vscode.window.showErrorMessage(`ATT&CK: Could not find technique matching '${input}'`);
         }
-        else {
-            if (debug) { log(`Prompt returned ${input}`); }
-            panel = displayPanel(results, extensionPath);
+    }
+    return results;
+}
+
+/*
+    Control flow and asking for/understanding what to do with user input
+*/
+export async function search(techniques: Array<Technique>, extensionPath: string): Promise<vscode.WebviewPanel|undefined> {
+    let panel: vscode.WebviewPanel|undefined = undefined;
+    let results: Array<Technique> = new Array<Technique>();
+    if (debug) { log('Prompting user for a search term'); }
+    const inBoxOpt: vscode.InputBoxOptions = {
+        placeHolder: 'Technique Name or ID',
+        prompt: 'Search for an ATT&CK term'
+    };
+    const input: string|undefined = await vscode.window.showInputBox(inBoxOpt, undefined);
+    // if the user cancels the prompt there may be no input to search
+    if (input === undefined || input.length === 0) {
+        log('No input provided. Cancelling search.');
+    }
+    // user is ok with potentially many results. continue with search
+    else if (input.length < minTermLength) {
+        log('Search term is very short. Asking user if they want to continue');
+        const confirmationMessage = `Searching for '${input}' may return more results than expected.\n\nAre you sure?`;
+        const confirmation: string|undefined = await vscode.window.showWarningMessage(confirmationMessage, {modal: true}, 'Ok');
+        if (confirmation === undefined) {
+            if (debug) { log(`Search for '${input}' cancelled!`); }
         }
+        else {
+            if (debug) { log(`Received confirmation from user to search for '${input}'`); }
+            results = doSearch(input, techniques);
+        }
+    }
+    // user provided a fairly long term to search - possibility of too many results is low
+    else {
+        results = doSearch(input, techniques);
+    }
+    // woohoo! got some search results back
+    if (results.length > 0) {
+        panel = displayPanel(results, extensionPath);
     }
     return panel;
 }

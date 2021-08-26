@@ -78,7 +78,7 @@ describe('Techniques', function () {
         assert.strictEqual(techniqueItems.length, 2);
         techniqueItems.forEach((item: vscode.CompletionItem) => {
             assert.ok(item instanceof vscode.CompletionItem);
-            assert.ok(expectedNames.includes(item.label));
+            assert.ok(expectedNames.includes(item.label.toString()));
             assert.strictEqual(item.kind, vscode.CompletionItemKind.Value);
         });
     });
@@ -94,7 +94,7 @@ describe('Techniques', function () {
         assert.ok(results instanceof vscode.CompletionList);
         // filter out results from other providers
         const techniqueItems: Array<vscode.CompletionItem> = results.items.filter((item) => {
-            return item instanceof vscode.CompletionItem && item.label.includes('technique description');
+            return item instanceof vscode.CompletionItem && item.label.toString().includes('technique description');
         });
         assert.strictEqual(techniqueItems.length, 1);
         assert.ok(techniqueItems[0] instanceof vscode.CompletionItem);
@@ -112,7 +112,7 @@ describe('Techniques', function () {
         assert.ok(results instanceof vscode.CompletionList);
         // filter out results from other providers
         const techniqueItems: Array<vscode.CompletionItem> = results.items.filter((item) => {
-            return item instanceof vscode.CompletionItem && item.label.includes('technique description');
+            return item instanceof vscode.CompletionItem && item.label.toString().includes('technique description');
         });
         assert.strictEqual(techniqueItems.length, 0);
     });
