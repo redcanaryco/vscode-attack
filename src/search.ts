@@ -104,7 +104,9 @@ function updatePanel(panel: vscode.WebviewPanel, technique: Technique, currentPo
     // only add navigation buttons + javascript when there is more than one technique
     const enableNavigation: boolean = totalTechniques > 1;
     if (enableNavigation) {
-        body += `<hr><button id="previous-technique" class="navigation">&lt;&lt;</button><div id="nav-summary">${currentPosition+1}/${totalTechniques}</div><button id="next-technique" class="navigation">&gt;&gt;</button>`;
+        body += '<hr><button id="previous-technique" class="navigation">&lt;&lt;</button>';
+        body += `<div id="nav-summary">${currentPosition+1}/${totalTechniques}</div>`;
+        body += '<button id="next-technique" class="navigation">&gt;&gt;</button>';
     }
     // update the panel to display the new technique
     panel.title = `${technique.id}: ${technique.name}`;
