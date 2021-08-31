@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2021-08-31
+
+- Added project wiki and updated README accordingly
+- Added search command prompt. Users will be warned about the possibility of unrelated results if their search term is short (currently less than 5 characters)
+- Re-worked search result webview to only display one result at a time and allow the user to navigate through the results
+
 ## [1.2.0] - 2021-08-11
 
 - Added support for Trusted Workspaces feature. Search command is disabled in untrusted workspaces, but all other features are enabled
@@ -39,7 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Completions and Hovers for ATT&CK Groups, Software, and Mitigations
 - Added new settings to toggle various providers based on ATT&CK item type (`vscode-attack.groups`, `.mitigations`, `.tactics`, etc.)
 
-[Unreleased]: https://github.com/redcanaryco/vscode-attack/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/redcanaryco/vscode-attack/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/redcanaryco/vscode-attack/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/redcanaryco/vscode-attack/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/redcanaryco/vscode-attack/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/redcanaryco/vscode-attack/compare/v1.0.0...v1.1.0
