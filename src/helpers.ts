@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import { IncomingMessage } from 'http';
 import * as https from 'https';
-import * as path from 'path';
 import * as vscode from 'vscode';
+import { Utils } from 'vscode-uri';
 
 export const output: vscode.OutputChannel = vscode.window.createOutputChannel("MITRE ATT&CK");
 // should match T1059.001
@@ -140,13 +140,13 @@ export function isAttackMapNewer(prospective: AttackMap, familiar: AttackMap): b
 /*
     Download a specific version of the MITRE ATT&CK map, save it to disk, and return its contents
 */
-export function downloadAttackMap(storageDir: string, version: string): Promise<string> {
+export function downloadAttackMap(storageUri: vscode.Uri, version: string): Promise<string> {
     let downloadedData = '';
     return new Promise<string>(function (resolve, reject) {
         getVersions().then((availableVersions: Array<string>) => {
             if (availableVersions.includes(version)) {
                 // Example: v8.0 => enterprise-attack.8.0.json
-                const storagePath: string = path.join(storageDir, `enterprise-attack.${version}.json`);
+                const storagePath: string = vscode.Uri.joinPath(storageUri, `enterprise-attack.${version}.json`).fsPath;
                 const url = `https://raw.githubusercontent.com/mitre/cti/ATT%26CK-v${version}/enterprise-attack/enterprise-attack.json`;
                 const request = https.get(url, (res: IncomingMessage) => {
                     res.setEncoding('utf8');
@@ -180,14 +180,14 @@ export function downloadAttackMap(storageDir: string, version: string): Promise<
 /*
     Download the latest version of the MIRE ATT&CK map - just a wrapper for some repeat code
 */
-export async function downloadLatestAttackMap(storageDir: string): Promise<AttackMap|undefined> {
+export async function downloadLatestAttackMap(storageUri: vscode.Uri): Promise<AttackMap|undefined> {
     let result: AttackMap|undefined = undefined;
     try {
         const availableVersions: Array<string> = await getVersions();
         // always look for the latest tagged version
         const version = `${availableVersions.sort()[availableVersions.length - 1]}`;
         try {
-            const downloadedData: string = await downloadAttackMap(storageDir, version);
+            const downloadedData: string = await downloadAttackMap(storageUri, version);
             // and once it's cached, parse + return it
             result = JSON.parse(downloadedData) as AttackMap;
         } catch (err) {
@@ -200,15 +200,22 @@ export async function downloadLatestAttackMap(storageDir: string): Promise<Attac
 }
 
 /*
+    Parse the ATT&CK map version from a filename
+*/
+export function extractAttackVersion(fileUri: vscode.Uri): string {
+    return Utils.basename(fileUri).replace('enterprise-attack.', '').replace('.json', '');
+}
+
+/*
     Get the newest version of the ATT&CK map in the specified cache directory
 */
-export function getLatestCacheVersion(cacheDir: string): Promise<string|undefined> {
+export function getLatestCacheVersion(cacheUri: vscode.Uri): Promise<vscode.Uri|undefined> {
     const pattern = /enterprise-attack\..*\.json/;
-    return new Promise<string|undefined>((resolve, reject) => {
-        let latestVersionPath: string|undefined = undefined;
-        fs.readdir(cacheDir, (err, files) => {
+    return new Promise<vscode.Uri|undefined>((resolve, reject) => {
+        let latestVersionPath: vscode.Uri|undefined = undefined;
+        fs.readdir(cacheUri.fsPath, (err, files) => {
             if (err) {
-                log(`Couldn't read files from ${cacheDir}! ${err.message}`);
+                log(`Couldn't read files from ${cacheUri}! ${err.message}`);
                 reject(err);
             }
             else {
@@ -217,7 +224,7 @@ export function getLatestCacheVersion(cacheDir: string): Promise<string|undefine
                     return file.match(pattern);
                 }).sort().pop();
                 if (latestVersionName !== undefined) {
-                    latestVersionPath = path.join(cacheDir, latestVersionName);
+                    latestVersionPath = vscode.Uri.joinPath(cacheUri, latestVersionName);
                 }
             }
             resolve(latestVersionPath);

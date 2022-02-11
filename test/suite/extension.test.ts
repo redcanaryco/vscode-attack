@@ -19,8 +19,8 @@ describe('Extension', function () {
     beforeEach(ignoreConsoleLogs);
     afterEach(resetState);
     it('should use a cached version of the ATT&CK map if available', function (done) {
-        const tmpDir: string = os.tmpdir();
-        const tmpPath: string = path.join(tmpDir, enterpriseAttackFilename);
+        const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
+        const tmpPath: string = vscode.Uri.joinPath(tmpDir, enterpriseAttackFilename).fsPath;
         // queue this up to be deleted after the test has finished
         fileArtifacts.push(tmpPath);
         let fileContents = "";
@@ -45,23 +45,23 @@ describe('Extension', function () {
         });
     });
     it('should download a new version of the ATT&CK map if none is cached', async function () {
-        const tmpDir: string = os.tmpdir();
+        const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
         // collect the current timestamp
         const currTime: Date = new Date();
         await extension.cacheData(tmpDir);
         // now test cacheData with the same tmp directory, knowing that the file should already exist
-        const tmpPath: string | undefined = await helpers.getLatestCacheVersion(tmpDir);
+        const tmpPath: vscode.Uri | undefined = await helpers.getLatestCacheVersion(tmpDir);
         assert.ok(tmpPath !== undefined);
         // queue this up to be deleted after the test has finished
-        fileArtifacts.push(tmpPath);
-        const cachedFileStats: fs.Stats = fs.statSync(tmpPath);
+        fileArtifacts.push(tmpPath.fsPath);
+        const cachedFileStats: fs.Stats = fs.statSync(tmpPath.fsPath);
         // ... and assert that the modified time is pretty close to our current time
         // allow the cached file to be created within 15 seconds of current time, just for some wiggle room
         assert.ok((currTime.getMilliseconds() - cachedFileStats.mtimeMs) < 15000);
     });
     it('should download a new version of the ATT&CK map if the available one is outdated', async function () {
-        const tmpDir: string = os.tmpdir();
-        const tmpPath: string = path.join(tmpDir, 'enterprise-attack.7.2.json');
+        const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
+        const tmpPath: string = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.7.2.json').fsPath;
         const oldMapPath: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack7.json');
         const oldMap: AttackMap = JSON.parse(fs.readFileSync(oldMapPath).toString()) as AttackMap;
         // queue this up to be deleted after the test has finished
@@ -93,10 +93,10 @@ describe('Extension', function () {
         const expectedPath: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack8.json');
         const expectedMapping: AttackMap = JSON.parse(fs.readFileSync(expectedPath).toString()) as AttackMap;
         const version = '8.0';
-        const tmpDir: string = os.tmpdir();
-        const tmpPath: string = path.join(tmpDir, `enterprise-attack.v${version}.json`);
+        const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
+        const tmpPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, `enterprise-attack.v${version}.json`);
         // queue this up to be deleted after the test has finished
-        fileArtifacts.push(tmpPath);
+        fileArtifacts.push(tmpPath.fsPath);
         const actualContents: string = await helpers.downloadAttackMap(tmpDir, version);
         assert.notStrictEqual(actualContents, '', 'downloadAttackMap() returned an empty string');
         assert.ok(actualContents !== undefined);
@@ -105,53 +105,47 @@ describe('Extension', function () {
     }).timeout(5000);
     it('downloadAttackMap: should return an empty string if the provided version does not exist', async function () {
         const version = 'ThisDoesNotExist';
-        const tmpDir: string = os.tmpdir();
-        const tmpPath: string = path.join(tmpDir, enterpriseAttackFilename);
+        const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
+        const tmpPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, enterpriseAttackFilename);
         // queue this up to be deleted after the test has finished
-        fileArtifacts.push(tmpPath);
-        const actualContents: string = await helpers.downloadAttackMap(tmpPath, version);
+        fileArtifacts.push(tmpPath.fsPath);
+        const actualContents: string = await helpers.downloadAttackMap(tmpDir, version);
         assert.strictEqual(actualContents, '', `downloadAttackMap returned something other than an empty string! ${actualContents.substr(0, 10)}...`);
     }).timeout(5000);
-    it('getLatestCacheVersion: should return the file if only one is in the cache directory', function (done) {
-        const tmpDir: string = path.join(os.tmpdir(), 'getLatestCacheVersionTest1');
-        fs.mkdirSync(tmpDir);
+    it('getLatestCacheVersion: should return the file if only one is in the cache directory', async function () {
+        const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'getLatestCacheVersionTest1');
+        fs.mkdirSync(tmpDir.fsPath);
         const v8Path: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack7.json');
-        const expectedPath: string = path.join(tmpDir, `enterprise-attack.7.2.json`);
-        fs.copyFileSync(v8Path, expectedPath);
-        fileArtifacts.push(expectedPath);
-        helpers.getLatestCacheVersion(tmpDir).then((result: string | undefined) => {
-            assert.strictEqual(result, expectedPath);
-            done();
-        });
+        const expectedPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, `enterprise-attack.7.2.json`);
+        fs.copyFileSync(v8Path, expectedPath.fsPath);
+        fileArtifacts.push(expectedPath.fsPath);
+        const result: vscode.Uri|undefined = await helpers.getLatestCacheVersion(tmpDir);
+        assert.strictEqual(result, expectedPath);
     });
-    it('getLatestCacheVersion: should return the newest file if multiple are in the cache directory', function (done) {
-        const tmpDir: string = path.join(os.tmpdir(), 'getLatestCacheVersionTest2');
-        fs.mkdirSync(tmpDir);
-        fileArtifacts.push(tmpDir);
+    it('getLatestCacheVersion: should return the newest file if multiple are in the cache directory', async function () {
+        const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'getLatestCacheVersionTest2');
+        fs.mkdirSync(tmpDir.fsPath);
+        fileArtifacts.push(tmpDir.fsPath);
         const v7Path: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack7.json');
-        const oldPath: string = path.join(tmpDir, 'enterprise-attack.7.2.json');
+        const oldPath: string = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.7.2.json').fsPath;
         fs.copyFileSync(v7Path, oldPath);
         fileArtifacts.push(oldPath);
         const v8Path: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack8.json');
-        const expectedPath: string = path.join(tmpDir, `enterprise-attack.8.0.json`);
+        const expectedPath: string = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.8.0.json').fsPath;
         fs.copyFileSync(v8Path, expectedPath);
         fileArtifacts.push(expectedPath);
-        helpers.getLatestCacheVersion(tmpDir).then((result: string | undefined) => {
-            assert.strictEqual(result, expectedPath);
-            done();
-        });
+        const result: vscode.Uri|undefined = await helpers.getLatestCacheVersion(tmpDir);
+        assert.strictEqual(result, expectedPath);
     });
-    it('getLatestCacheVersion: should return undefined if there are no files in the cache directory', function (done) {
-        const tmpDir: string = path.join(os.tmpdir(), 'getLatestCacheVersionTest3');
-        fs.mkdirSync(tmpDir);
-        fileArtifacts.push(tmpDir);
-        helpers.getLatestCacheVersion(tmpDir).then((result: string | undefined) => {
-            assert.strictEqual(result, undefined);
-            done();
-        });
+    it('getLatestCacheVersion: should return undefined if there are no files in the cache directory', async function () {
+        const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'getLatestCacheVersionTest3');
+        fs.mkdirSync(tmpDir.fsPath);
+        fileArtifacts.push(tmpDir.fsPath);
+        const result: vscode.Uri|undefined = await helpers.getLatestCacheVersion(tmpDir);
+        assert.strictEqual(result, undefined);
     });
     it('getLatestCacheVersion: should throw an exception if the cache directory does not exist', function (done) {
-        const tmpDir: string = path.join(os.tmpdir(), 'ThisDoesNotExist');
+        const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'ThisDoesNotExist');
         helpers.getLatestCacheVersion(tmpDir).catch(() => { done(); });
     });
     it('getModifiedTime: should return the modified time of an ATT&CK mapping', async function () {
