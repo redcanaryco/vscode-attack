@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { mitigationRegex } from '../../helpers';
-import { configSection, extensionID, ignoreConsoleLogs, resetState, setTestConfig } from '../suite/testHelpers';
+import { mitigationRegex } from '../../src/helpers';
+import { configSection, extensionID, ignoreConsoleLogs, resetState, setTestConfig } from './testHelpers';
 
 
 describe('Mitigations', function () {

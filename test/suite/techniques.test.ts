@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { techniqueRegex } from '../../helpers';
-import { ATTACKExtensionAPI, configSection, disposables, extensionID, ignoreConsoleLogs, resetState, setTestConfig } from '../suite/testHelpers';
+import { techniqueRegex } from '../../src/helpers';
+import { ATTACKExtensionAPI, configSection, extensionID, ignoreConsoleLogs, resetState, setTestConfig } from './testHelpers';
 
 
 describe('Techniques', function () {

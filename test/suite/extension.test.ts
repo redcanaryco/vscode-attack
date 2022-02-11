@@ -5,9 +5,9 @@ import * as https from 'https';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as extension from '../../extension';
-import * as helpers from '../../helpers';
-import { configSection, consoleLogger, extensionID, fileArtifacts, ignoreConsoleLogs, resetState, setTestConfig } from '../suite/testHelpers';
+import * as extension from '../../src/extension';
+import * as helpers from '../../src/helpers';
+import { configSection, consoleLogger, extensionID, fileArtifacts, ignoreConsoleLogs, resetState, setTestConfig } from './testHelpers';
 
 // const extensionConfig: string = 'vscode-attack';
 const enterpriseAttackFilename = 'enterprise-attack.json';

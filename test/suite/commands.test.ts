@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as search from '../../search';
-import { disposables, extensionID, ignoreConsoleLogs, resetState } from '../suite/testHelpers';
+import * as search from '../../src/search';
+import { extensionID, ignoreConsoleLogs, resetState } from './testHelpers';
 
 
 describe('Command: search', function () {
