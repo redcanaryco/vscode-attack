@@ -9,8 +9,7 @@ const webExtensionConfig = {
   mode: 'none',
   target: 'webworker',
   entry: {
-    extension: './src/extension.ts',
-    'test/suite/index': './src/test/suite/index.ts'
+    extension: './src/extension.ts'
   },
   output: {
     filename: '[name].js',
@@ -57,8 +56,7 @@ const nodeExtensionConfig = {
   mode: 'none',
   target: 'node',
   entry: {
-    extension: './src/extension.ts',
-    'test/suite/index': './test/suite/index.ts'
+    extension: './src/extension.ts'
   },
   output: {
     filename: '[name].js',
