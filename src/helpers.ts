@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import { IncomingMessage } from 'http';
 import * as https from 'https';
 import * as vscode from 'vscode';
@@ -141,12 +140,12 @@ export function isAttackMapNewer(prospective: AttackMap, familiar: AttackMap): b
     Download a specific version of the MITRE ATT&CK map, save it to disk, and return its contents
 */
 export function downloadAttackMap(storageUri: vscode.Uri, version: string): Promise<string> {
-    let downloadedData = '';
+    let downloadedData: string = '';
     return new Promise<string>(function (resolve, reject) {
         getVersions().then((availableVersions: Array<string>) => {
             if (availableVersions.includes(version)) {
                 // Example: v8.0 => enterprise-attack.8.0.json
-                const storagePath: string = vscode.Uri.joinPath(storageUri, `enterprise-attack.${version}.json`).fsPath;
+                const storagePath: vscode.Uri = vscode.Uri.joinPath(storageUri, `enterprise-attack.${version}.json`);
                 const url = `https://raw.githubusercontent.com/mitre/cti/ATT%26CK-v${version}/enterprise-attack/enterprise-attack.json`;
                 const request = https.get(url, (res: IncomingMessage) => {
                     res.setEncoding('utf8');
@@ -159,7 +158,7 @@ export function downloadAttackMap(storageUri: vscode.Uri, version: string): Prom
                     });
                     res.on('end', () => {
                         // save the JSON file to the global storage path
-                        fs.writeFileSync(storagePath, downloadedData.toString());
+                        vscode.workspace.fs.writeFile(storagePath, Buffer.from(downloadedData, 'utf-8'));
                         log(`Successfully cached the Enterprise ATT&CK v${version} data @ '${storagePath}'!`);
                         resolve(downloadedData);
                     });
@@ -210,22 +209,17 @@ export function extractAttackVersion(fileUri: vscode.Uri): string {
     Get the newest version of the ATT&CK map in the specified cache directory
 */
 export function getLatestCacheVersion(cacheUri: vscode.Uri): Promise<vscode.Uri|undefined> {
-    const pattern = /enterprise-attack\..*\.json/;
+    const pattern: RegExp = /enterprise-attack\..*\.json/;
     return new Promise<vscode.Uri|undefined>((resolve, reject) => {
         let latestVersionPath: vscode.Uri|undefined = undefined;
-        fs.readdir(cacheUri.fsPath, (err, files) => {
-            if (err) {
-                log(`Couldn't read files from ${cacheUri}! ${err.message}`);
-                reject(err);
-            }
-            else {
-                // sort files matching pattern in ascending order and get the last (most recent) version
-                const latestVersionName: string|undefined = files.filter((file: string) => {
-                    return file.match(pattern);
-                }).sort().pop();
-                if (latestVersionName !== undefined) {
-                    latestVersionPath = vscode.Uri.joinPath(cacheUri, latestVersionName);
-                }
+        vscode.workspace.fs.readDirectory(cacheUri).then((entries: [string, vscode.FileType][]) => {
+            const latestVersionName: string|undefined = entries.filter((entry: [string, vscode.FileType]) => {
+                return entry[1] == vscode.FileType.File && entry[0].match(pattern);
+            }).map((entry: [string, vscode.FileType]) => {
+                return entry[0];
+            }).sort().pop();
+            if (latestVersionName !== undefined) {
+                latestVersionPath = vscode.Uri.joinPath(cacheUri, latestVersionName);
             }
             resolve(latestVersionPath);
         });

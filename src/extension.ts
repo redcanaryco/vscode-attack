@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import * as vscode from 'vscode';
 import { configSection, debug, setCompletionItemFormat, setDebugLogState } from './configuration';
 import { log } from './helpers';
@@ -48,47 +47,40 @@ const currentProviders = Object.create(Providers);
 export async function cacheData(storageUri: vscode.Uri): Promise<AttackMap|undefined> {
     let result: AttackMap|undefined = undefined;
     log('Checking extension cache for MITRE ATT&CK mapping.');
-    if (!fs.existsSync(storageUri.fsPath)) {
-        // cache the newest version of ATT&CK
-        if (debug) { log('Cached directory does not exist. Creating.'); }
-        fs.mkdirSync(storageUri.fsPath, {recursive: true});
+    // TODO: Figure out if this will be skipped when storageUri exists
+    await vscode.workspace.fs.createDirectory(storageUri);
+    const cachedPath: vscode.Uri|undefined = await helpers.getLatestCacheVersion(storageUri);
+    if (cachedPath === undefined) {
+        // no files found - download the latest version from GitHub
+        log('Nothing found in extension cache. Downloading latest version of MITRE ATT&CK mapping');
         result = await helpers.downloadLatestAttackMap(storageUri);
     }
     else {
-        // check the cache directory for matching files
-        const cachedPath: vscode.Uri|undefined = await helpers.getLatestCacheVersion(storageUri);
         if (debug) { log(`Using cache path: ${cachedPath}`); }
-        if (cachedPath === undefined) {
-            // no files found - download the latest version from GitHub
-            log('Nothing found in extension cache. Downloading latest version of MITRE ATT&CK mapping');
-            result = await helpers.downloadLatestAttackMap(storageUri);
-        }
-        else {
-            // files found - compare the cached version to the newest version on GitHub
-            // Example: enterprise-attack.8.0.json => 8.0
-            const cachedVersion = helpers.extractAttackVersion(cachedPath);
-            if (debug) { log(`Cached version: ${cachedVersion}`); }
-            try {
-                const availableVersions: Array<string> = await helpers.getVersions();
-                const onlineVersion = `${availableVersions.sort()[availableVersions.length - 1]}`;
-                if (debug) { log(`Online version: ${onlineVersion}`); }
-                if (cachedVersion < onlineVersion) {
-                    // if online version is newer than the cached one, download and use the online version
-                    vscode.window.showInformationMessage('ATT&CK: Identified a new version of the ATT&CK mapping! Replacing cached version.');
-                    log(`Identified a new version of the ATT&CK mapping! Replacing cached map (${cachedVersion}) with downloaded map (${onlineVersion})`);
-                    result = await helpers.downloadLatestAttackMap(storageUri);
-                }
-                else {
-                    // otherwise just use the cached one
-                    log(`Nothing to do. Cached version is on latest ATT&CK version ${onlineVersion}`);
-                    const cachedData: string = fs.readFileSync(cachedPath.fsPath, {encoding: 'utf8'});
-                    result = JSON.parse(cachedData) as AttackMap;
-                }
-            } catch (error) {
-                log(`Could not download ATT&CK version from GitHub. Falling back to cached version ${cachedVersion}.`);
-                const cachedData: string = fs.readFileSync(cachedPath.fsPath, {encoding: 'utf8'});
-                result = JSON.parse(cachedData) as AttackMap;
+        // files found - compare the cached version to the newest version on GitHub
+        // Example: enterprise-attack.8.0.json => 8.0
+        const cachedVersion = helpers.extractAttackVersion(cachedPath);
+        if (debug) { log(`Cached version: ${cachedVersion}`); }
+        try {
+            const availableVersions: Array<string> = await helpers.getVersions();
+            const onlineVersion = `${availableVersions.sort()[availableVersions.length - 1]}`;
+            if (debug) { log(`Online version: ${onlineVersion}`); }
+            if (cachedVersion < onlineVersion) {
+                // if online version is newer than the cached one, download and use the online version
+                vscode.window.showInformationMessage('ATT&CK: Identified a new version of the ATT&CK mapping! Replacing cached version.');
+                log(`Identified a new version of the ATT&CK mapping! Replacing cached map (${cachedVersion}) with downloaded map (${onlineVersion})`);
+                result = await helpers.downloadLatestAttackMap(storageUri);
             }
+            else {
+                // otherwise just use the cached one
+                log(`Nothing to do. Cached version is on latest ATT&CK version ${onlineVersion}`);
+                const contents: Uint8Array = await vscode.workspace.fs.readFile(cachedPath);
+                result = JSON.parse(JSON.stringify(contents)) as AttackMap;
+            }
+        } catch (error) {
+            log(`Could not download ATT&CK version from GitHub. Falling back to cached version ${cachedVersion}.`);
+            const contents: Uint8Array = await vscode.workspace.fs.readFile(cachedPath);
+            result = JSON.parse(JSON.stringify(contents)) as AttackMap;
         }
     }
     return result;
