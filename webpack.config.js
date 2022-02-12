@@ -23,7 +23,8 @@ const webExtensionConfig = {
     extensions: ['.ts', '.js'],
     alias: {},
     fallback: {
-        assert: require.resolve('assert')
+        assert: require.resolve('assert'),
+        https: require.resolve('https-browserify')
     }
   },
   module: {
@@ -54,10 +55,10 @@ const webExtensionConfig = {
 };
 const nodeExtensionConfig = {
   mode: 'none',
-  target: 'webworker',
+  target: 'node',
   entry: {
     extension: './src/extension.ts',
-    'test/suite/index': './src/test/suite/index.ts'
+    'test/suite/index': './test/suite/index.ts'
   },
   output: {
     filename: '[name].js',
@@ -68,10 +69,6 @@ const nodeExtensionConfig = {
   resolve: {
     mainFields: ['module', 'main'],
     extensions: ['.ts', '.js'],
-    alias: {},
-    fallback: {
-        assert: require.resolve('assert')
-    }
   },
   module: {
     rules: [
