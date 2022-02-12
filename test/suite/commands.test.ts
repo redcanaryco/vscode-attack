@@ -67,7 +67,7 @@ describe('Command: search', function () {
 describe('Command: insertLink', function () {
     const events: Array<vscode.Disposable> = [];
     const insertLinkCommand = 'vscode-attack.insertLink';
-    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'links.md');
+    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'test', 'files', 'links.md');
     const testUri: vscode.Uri = vscode.Uri.file(testPath);
     let ext: vscode.Extension<unknown> | undefined;
     const attackObjects: Array<Group|Mitigation|Software|Tactic|Technique> = [

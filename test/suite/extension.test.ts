@@ -62,7 +62,7 @@ describe('Extension', function () {
     it('should download a new version of the ATT&CK map if the available one is outdated', async function () {
         const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
         const tmpPath: string = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.7.2.json').fsPath;
-        const oldMapPath: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack7.json');
+        const oldMapPath: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack7.json');
         const oldMap: AttackMap = JSON.parse(fs.readFileSync(oldMapPath).toString()) as AttackMap;
         // queue this up to be deleted after the test has finished
         fileArtifacts.push(tmpPath);
@@ -90,7 +90,7 @@ describe('Extension', function () {
         // TODO
     });
     it('downloadAttackMap: should download the specified ATT&CK mapping version', async function () {
-        const expectedPath: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack8.json');
+        const expectedPath: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack8.json');
         const expectedMapping: AttackMap = JSON.parse(fs.readFileSync(expectedPath).toString()) as AttackMap;
         const version = '8.0';
         const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
@@ -115,7 +115,7 @@ describe('Extension', function () {
     it('getLatestCacheVersion: should return the file if only one is in the cache directory', async function () {
         const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'getLatestCacheVersionTest1');
         fs.mkdirSync(tmpDir.fsPath);
-        const v8Path: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack7.json');
+        const v8Path: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack7.json');
         const expectedPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, `enterprise-attack.7.2.json`);
         fs.copyFileSync(v8Path, expectedPath.fsPath);
         fileArtifacts.push(expectedPath.fsPath);
@@ -126,11 +126,11 @@ describe('Extension', function () {
         const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'getLatestCacheVersionTest2');
         fs.mkdirSync(tmpDir.fsPath);
         fileArtifacts.push(tmpDir.fsPath);
-        const v7Path: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack7.json');
+        const v7Path: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack7.json');
         const oldPath: string = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.7.2.json').fsPath;
         fs.copyFileSync(v7Path, oldPath);
         fileArtifacts.push(oldPath);
-        const v8Path: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack8.json');
+        const v8Path: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack8.json');
         const expectedPath: string = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.8.0.json').fsPath;
         fs.copyFileSync(v8Path, expectedPath);
         fileArtifacts.push(expectedPath);
@@ -149,7 +149,7 @@ describe('Extension', function () {
         helpers.getLatestCacheVersion(tmpDir).catch(() => { done(); });
     });
     it('getModifiedTime: should return the modified time of an ATT&CK mapping', async function () {
-        const filePath: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack7.json');
+        const filePath: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack7.json');
         const expectedModifiedTime = '2020-07-02T14:18:03.651Z';
         const mapString: string = fs.readFileSync(filePath).toString();
         const mapping: AttackMap = JSON.parse(mapString) as AttackMap;
@@ -180,25 +180,25 @@ describe('Extension', function () {
     });
     it('isAttackMapNewer: should return true if prospective is newer than familiar', async function () {
         const expected = true;
-        const prospectivePath: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack8.json');
+        const prospectivePath: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack8.json');
         const prospective: AttackMap = JSON.parse(fs.readFileSync(prospectivePath).toString()) as AttackMap;
-        const familiarPath: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack7.json');
+        const familiarPath: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack7.json');
         const familiar: AttackMap = JSON.parse(fs.readFileSync(familiarPath).toString()) as AttackMap;
         assert.strictEqual(helpers.isAttackMapNewer(prospective, familiar), expected);
     });
     it('isAttackMapNewer: should return false if prospective is older than familiar', async function () {
         const expected = false;
-        const prospectivePath: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack7.json');
+        const prospectivePath: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack7.json');
         const prospective: AttackMap = JSON.parse(fs.readFileSync(prospectivePath).toString()) as AttackMap;
-        const familiarPath: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack8.json');
+        const familiarPath: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack8.json');
         const familiar: AttackMap = JSON.parse(fs.readFileSync(familiarPath).toString()) as AttackMap;
         assert.strictEqual(helpers.isAttackMapNewer(prospective, familiar), expected);
     });
     it('isAttackMapNewer: should return false if prospective is the same as familiar', async function () {
         const expected = false;
-        const prospectivePath: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack8.json');
+        const prospectivePath: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack8.json');
         const prospective: AttackMap = JSON.parse(fs.readFileSync(prospectivePath).toString()) as AttackMap;
-        const familiarPath: string = path.join(__dirname, '..', '..', '..', 'src', 'test', 'files', 'attack8.json');
+        const familiarPath: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack8.json');
         const familiar: AttackMap = JSON.parse(fs.readFileSync(familiarPath).toString()) as AttackMap;
         assert.strictEqual(helpers.isAttackMapNewer(prospective, familiar), expected);
     });
@@ -207,7 +207,7 @@ describe('Extension', function () {
 describe('General Settings', function () {
     let ext: vscode.Extension<unknown> | undefined;
     let modifiedConfig: vscode.WorkspaceConfiguration;
-    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
+    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'test', 'files', 'test.md');
     const testUri: vscode.Uri = vscode.Uri.file(testPath);
 
     before(async function () {

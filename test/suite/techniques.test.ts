@@ -8,7 +8,7 @@ import { ATTACKExtensionAPI, configSection, extensionID, ignoreConsoleLogs, rese
 describe('Techniques', function () {
     this.timeout(5000);
     let exports: ATTACKExtensionAPI;
-    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
+    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'test', 'files', 'test.md');
     const testUri: vscode.Uri = vscode.Uri.file(testPath);
     let ext: vscode.Extension<unknown> | undefined;
     let modifiedConfig: vscode.WorkspaceConfiguration;
@@ -192,7 +192,7 @@ describe('Technique Settings', function () {
     // bumping timeout on this due to config updates in afterEach()
     // ... potentially taking a long time
     this.timeout(5000);
-    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'test.md');
+    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'test', 'files', 'test.md');
     const testUri: vscode.Uri = vscode.Uri.file(testPath);
     const modifiedConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(configSection);
 

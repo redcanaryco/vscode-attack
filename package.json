@@ -169,6 +169,8 @@
         "pretest": "npm run compile",
         "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. .",
         "test": "node ./out/test/runTest.js",
+        "test-compile": "tsc -p ./",
+        "test-web": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/index.js",
         "watch": "tsc -watch -p ./",
         "watch-web": "webpack --watch",
         "vscode:prepublish": "npm run compile && npm run package-web"
