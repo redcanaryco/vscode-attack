@@ -83,11 +83,7 @@ const nodeExtensionConfig = {
       }
     ]
   },
-  plugins: [
-    new webpack.ProvidePlugin({
-      process: 'process/browser'
-    })
-  ],
+  plugins: [],
   externals: {
     vscode: 'commonjs vscode'
   },
