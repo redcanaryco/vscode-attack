@@ -14,7 +14,21 @@
                 "--extensionDevelopmentPath=${workspaceFolder}"
             ],
             "outFiles": [
-                "${workspaceFolder}/out/**/*.js"
+                "${workspaceFolder}/dist/host/*.js"
+            ],
+            "preLaunchTask": "${defaultBuildTask}"
+        },
+        {
+            "name": "Run Web Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "runtimeExecutable": "vscode-test-web",
+            "args": [
+                "--browserType=chromium",
+                "--extensionDevelopmentPath=${workspaceFolder}"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/dist/web/*.js"
             ],
             "preLaunchTask": "${defaultBuildTask}"
         },
@@ -30,7 +44,7 @@
             "outFiles": [
                 "${workspaceFolder}/out/test/**/*.js"
             ],
-            "preLaunchTask": "${defaultBuildTask}"
+            "preLaunchTask": "build-tests"
         }
     ]
 }
