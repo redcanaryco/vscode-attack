@@ -1,3 +1,4 @@
+import { StringDecoder } from 'string_decoder';
 import * as vscode from 'vscode';
 import { configSection, debug, setCompletionItemFormat, setDebugLogState } from './configuration';
 import { log } from './helpers';
@@ -9,7 +10,6 @@ import { init as initTactics, register as registerTactics } from './tactics';
 import { init as initTechniques, register as registerTechniques } from './techniques';
 import { search } from './search';
 import { insertLink } from './insertLink';
-
 
 // track the providers we have so we can recreate them in case applicableFiles gets updated or they get toggled
 const Providers = {
@@ -75,12 +75,12 @@ export async function cacheData(storageUri: vscode.Uri): Promise<AttackMap|undef
                 // otherwise just use the cached one
                 log(`Nothing to do. Cached version is on latest ATT&CK version ${onlineVersion}`);
                 const contents: Uint8Array = await vscode.workspace.fs.readFile(cachedPath);
-                result = JSON.parse(JSON.stringify(contents)) as AttackMap;
+                result = JSON.parse(new StringDecoder('utf8').end(Buffer.from(contents))) as AttackMap;
             }
         } catch (error) {
             log(`Could not download ATT&CK version from GitHub. Falling back to cached version ${cachedVersion}.`);
             const contents: Uint8Array = await vscode.workspace.fs.readFile(cachedPath);
-            result = JSON.parse(JSON.stringify(contents)) as AttackMap;
+            result = JSON.parse(new StringDecoder('utf8').end(Buffer.from(contents))) as AttackMap;
         }
     }
     return result;
