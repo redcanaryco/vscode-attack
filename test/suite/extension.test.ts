@@ -114,28 +114,27 @@ describe('Extension', function () {
     }).timeout(5000);
     it('getLatestCacheVersion: should return the file if only one is in the cache directory', async function () {
         const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'getLatestCacheVersionTest1');
-        fs.mkdirSync(tmpDir.fsPath);
+        fileArtifacts.push(tmpDir.fsPath);
         const v8Path: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack7.json');
         const expectedPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, `enterprise-attack.7.2.json`);
         fs.copyFileSync(v8Path, expectedPath.fsPath);
         fileArtifacts.push(expectedPath.fsPath);
         const result: vscode.Uri|undefined = await helpers.getLatestCacheVersion(tmpDir);
-        assert.strictEqual(result, expectedPath);
+        assert.strictEqual(result?.fsPath, expectedPath.fsPath);
     });
     it('getLatestCacheVersion: should return the newest file if multiple are in the cache directory', async function () {
         const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'getLatestCacheVersionTest2');
-        fs.mkdirSync(tmpDir.fsPath);
         fileArtifacts.push(tmpDir.fsPath);
         const v7Path: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack7.json');
         const oldPath: string = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.7.2.json').fsPath;
         fs.copyFileSync(v7Path, oldPath);
         fileArtifacts.push(oldPath);
         const v8Path: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack8.json');
-        const expectedPath: string = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.8.0.json').fsPath;
-        fs.copyFileSync(v8Path, expectedPath);
-        fileArtifacts.push(expectedPath);
+        const expectedPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.8.0.json');
+        fs.copyFileSync(v8Path, expectedPath.fsPath);
+        fileArtifacts.push(expectedPath.fsPath);
         const result: vscode.Uri|undefined = await helpers.getLatestCacheVersion(tmpDir);
-        assert.strictEqual(result, expectedPath);
+        assert.strictEqual(result?.fsPath, expectedPath.fsPath);
     });
     it('getLatestCacheVersion: should return undefined if there are no files in the cache directory', async function () {
         const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'getLatestCacheVersionTest3');
@@ -146,7 +145,7 @@ describe('Extension', function () {
     });
     it('getLatestCacheVersion: should throw an exception if the cache directory does not exist', function (done) {
         const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'ThisDoesNotExist');
-        helpers.getLatestCacheVersion(tmpDir).catch(() => { done(); });
+        helpers.getLatestCacheVersion(tmpDir).catch(done);
     });
     it('getModifiedTime: should return the modified time of an ATT&CK mapping', async function () {
         const filePath: string = path.join(__dirname, '..', '..', '..', 'test', 'files', 'attack7.json');

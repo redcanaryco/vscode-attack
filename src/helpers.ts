@@ -104,13 +104,13 @@ export function getVersions(prefix = 'ATT&CK-v'): Promise<Array<string>> {
                     } catch (error) {
                         log(`No tags were parsed! Something went wrong! Is api.github.com reachable?`);
                     }
-                    reject('ATT&CK map versions could not be downloaded');
+                    reject(new Error('ATT&CK map versions could not be downloaded'));
                 }
             });
         });
         request.setTimeout(httpTimeout, () => {
             log(`HTTP request timed out while downloading ATT&CK map versions! Is api.github.com reachable?`);
-            reject('HTTP request timed out');
+            reject(new Error('HTTP request timed out'));
         });
     });
 }
@@ -193,7 +193,7 @@ export async function downloadLatestAttackMap(storageUri: vscode.Uri): Promise<A
             log(`downloadLatestAttackMap() failed due to '${err}'`);
         }
     } catch (err) {
-        log(`getVersions() failed due to '${err}'`);
+        log(`downloadLatestAttackMap() failed due to '${err}'`);
     }
     return result;
 }
@@ -208,22 +208,23 @@ export function extractAttackVersion(fileUri: vscode.Uri): string {
 /*
     Get the newest version of the ATT&CK map in the specified cache directory
 */
-export function getLatestCacheVersion(cacheUri: vscode.Uri): Promise<vscode.Uri|undefined> {
+export async function getLatestCacheVersion(cacheUri: vscode.Uri): Promise<vscode.Uri|undefined> {
     const pattern: RegExp = /enterprise-attack\..*\.json/;
-    return new Promise<vscode.Uri|undefined>((resolve, reject) => {
-        let latestVersionPath: vscode.Uri|undefined = undefined;
-        vscode.workspace.fs.readDirectory(cacheUri).then((entries: [string, vscode.FileType][]) => {
-            const latestVersionName: string|undefined = entries.filter((entry: [string, vscode.FileType]) => {
-                return entry[1] == vscode.FileType.File && entry[0].match(pattern);
-            }).map((entry: [string, vscode.FileType]) => {
-                return entry[0];
-            }).sort().pop();
-            if (latestVersionName !== undefined) {
-                latestVersionPath = vscode.Uri.joinPath(cacheUri, latestVersionName);
-            }
-            resolve(latestVersionPath);
-        });
-    });
+    let latestVersionPath: vscode.Uri|undefined = undefined;
+    try {
+        const entries: [string, vscode.FileType][] = await vscode.workspace.fs.readDirectory(cacheUri);
+        const latestVersionName: string|undefined = entries.filter((entry: [string, vscode.FileType]) => {
+            return entry[1] == vscode.FileType.File && entry[0].match(pattern);
+        }).map((entry: [string, vscode.FileType]) => {
+            return entry[0];
+        }).sort().pop();
+        if (latestVersionName !== undefined) {
+            latestVersionPath = vscode.Uri.joinPath(cacheUri, latestVersionName);
+        }
+    } catch (err) {
+        log(`getLatestCacheVersion() failed due to '${err}'`);
+    }
+    return latestVersionPath;
 }
 
 /*
