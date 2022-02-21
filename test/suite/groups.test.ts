@@ -1,13 +1,11 @@
 import * as assert from 'assert';
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { groupRegex } from '../../src/helpers';
 import { configSection, extensionID, ignoreConsoleLogs, resetState, setTestConfig } from './testHelpers';
 
 
 describe('Groups', function () {
-    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'test', 'files', 'test.md');
-    const testUri: vscode.Uri = vscode.Uri.file(testPath);
+    const testUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/test.md`);
     let ext: vscode.Extension<unknown> | undefined;
     let modifiedConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(configSection);
 
@@ -70,8 +68,7 @@ describe('Group Settings', function () {
     // bumping timeout on this due to config updates in afterEach()
     // ... potentially taking a long time
     this.timeout(5000);
-    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'test', 'files', 'test.md');
-    const testUri: vscode.Uri = vscode.Uri.file(testPath);
+    const testUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/test.md`);
     const modifiedConfig: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(configSection);
 
     before(async function () {

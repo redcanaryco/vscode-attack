@@ -1,13 +1,12 @@
 import * as assert from 'assert';
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { mitigationRegex } from '../../src/helpers';
 import { configSection, extensionID, ignoreConsoleLogs, resetState, setTestConfig } from './testHelpers';
 
 
+const testUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/test.md`);
+
 describe('Mitigations', function () {
-    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'test', 'files', 'test.md');
-    const testUri: vscode.Uri = vscode.Uri.file(testPath);
     let ext: vscode.Extension<unknown> | undefined;
     let modifiedConfig: vscode.WorkspaceConfiguration;
 
@@ -70,8 +69,6 @@ describe('Mitigation Settings', function () {
     // bumping timeout on this due to config updates in afterEach()
     // ... potentially taking a long time
     this.timeout(5000);
-    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'test', 'files', 'test.md');
-    const testUri: vscode.Uri = vscode.Uri.file(testPath);
     const modifiedConfig: vscode.WorkspaceConfiguration  = vscode.workspace.getConfiguration(configSection);
 
     before(async function () {
