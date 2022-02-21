@@ -214,7 +214,7 @@ export async function getLatestCacheVersion(cacheUri: vscode.Uri): Promise<vscod
     try {
         const entries: [string, vscode.FileType][] = await vscode.workspace.fs.readDirectory(cacheUri);
         const latestVersionName: string|undefined = entries.filter((entry: [string, vscode.FileType]) => {
-            return entry[1] == vscode.FileType.File && entry[0].match(pattern);
+            return entry[1] === vscode.FileType.File && entry[0].match(pattern);
         }).map((entry: [string, vscode.FileType]) => {
             return entry[0];
         }).sort().pop();

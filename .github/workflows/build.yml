@@ -29,6 +29,8 @@ jobs:
       run: npm ci
     - name: Lint code
       run: npm run lint
+    - name: Lint tests
+      run: npm run linttests
     - name: Build, test (Linux-only)
       run: xvfb-run -a npm test
       if: runner.os == 'Linux'
