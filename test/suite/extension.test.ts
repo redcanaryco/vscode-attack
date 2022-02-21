@@ -1,47 +1,32 @@
 import * as assert from 'assert';
-import { IncomingMessage } from 'http';
-import * as fs from 'fs';
-import * as https from 'https';
 import * as os from 'os';
+import { StringDecoder } from 'string_decoder';
 import * as vscode from 'vscode';
 import * as extension from '../../src/extension';
 import * as helpers from '../../src/helpers';
 import { configSection, consoleLogger, extensionID, fileArtifacts, ignoreConsoleLogs, resetState, setTestConfig } from './testHelpers';
 
-// const extensionConfig: string = 'vscode-attack';
-const enterpriseAttackFilename = 'enterprise-attack.json';
-const enterpriseAttackURL = 'https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json';
 
 describe('Extension', function () {
     this.timeout(10000);
 
     beforeEach(ignoreConsoleLogs);
     afterEach(resetState);
-    it('should use a cached version of the ATT&CK map if available', function (done) {
+    it('should use a cached version of the ATT&CK map if available', async function () {
         const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
-        const tmpPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, enterpriseAttackFilename);
-        // queue this up to be deleted after the test has finished
+        const tmpPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.1000.json');
+        const oldMapUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack7.json`);
+        // copy the ATT&CK map into the test cache and collect the timestamp of the cached data
+        await vscode.workspace.fs.createDirectory(tmpDir);
+        fileArtifacts.push(tmpDir);
+        await vscode.workspace.fs.copy(oldMapUri, tmpPath, {overwrite: true});
         fileArtifacts.push(tmpPath);
-        let fileContents = "";
-        // save the ATT&CK mapping to the temp directory first
-        // ... so that we know we have a cached version before testing our function
-        https.get(enterpriseAttackURL, (res: IncomingMessage) => {
-            res.setEncoding('utf8');
-            res.on('data', (chunk) => { fileContents = fileContents.concat(chunk); });
-            res.on('end', async function () {
-                fs.writeFileSync(tmpPath.fsPath, fileContents.toString());
-                // collect the timestamp of the cached data
-                const cachedFileStats: fs.Stats = fs.statSync(tmpPath.fsPath);
-                // now test cacheData with the same tmp directory, knowing that the file should already exist
-                extension.cacheData(tmpDir).then(() => {
-                    const newFileStats: fs.Stats = fs.statSync(tmpPath.fsPath);
-                    // ... and assert that the file was not modified
-                    const errMsg = `${cachedFileStats.mtime.toUTCString()} !== ${newFileStats.mtime.toUTCString()}`;
-                    assert.strictEqual(cachedFileStats.mtimeMs, newFileStats.mtimeMs, errMsg);
-                    done();
-                });
-            });
-        });
+        const cachedFileStats: vscode.FileStat = await vscode.workspace.fs.stat(tmpPath);
+        // now test cacheData with the same tmp directory, knowing that the file should already exist
+        await extension.cacheData(tmpDir);
+        const newFileStats: vscode.FileStat = await vscode.workspace.fs.stat(tmpPath);
+        // ... and assert that the file was not modified
+        assert.strictEqual(cachedFileStats.mtime, newFileStats.mtime, `${new Date(cachedFileStats.mtime).toUTCString()} !== ${new Date(newFileStats.mtime).toUTCString()}`);
     });
     it('should download a new version of the ATT&CK map if none is cached', async function () {
         const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
@@ -53,20 +38,21 @@ describe('Extension', function () {
         assert.ok(tmpPath !== undefined);
         // queue this up to be deleted after the test has finished
         fileArtifacts.push(tmpPath);
-        const cachedFileStats: fs.Stats = fs.statSync(tmpPath.fsPath);
+        // const cachedFileStats: fs.Stats = fs.statSync(tmpPath.fsPath);
+        const cachedFileStats: vscode.FileStat = await vscode.workspace.fs.stat(tmpPath);
         // ... and assert that the modified time is pretty close to our current time
         // allow the cached file to be created within 15 seconds of current time, just for some wiggle room
-        assert.ok((currTime.getMilliseconds() - cachedFileStats.mtimeMs) < 15000);
+        assert.ok((currTime.getMilliseconds() - cachedFileStats.mtime) < 15000);
     });
     it('should download a new version of the ATT&CK map if the available one is outdated', async function () {
         const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
         const tmpPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.7.2.json');
         const oldMapUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack7.json`);
-        const oldMap: AttackMap = JSON.parse(fs.readFileSync(oldMapUri.fsPath).toString()) as AttackMap;
-        // queue this up to be deleted after the test has finished
+        const oldContents: Uint8Array = await vscode.workspace.fs.readFile(oldMapUri);
+        const oldMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(oldContents))) as AttackMap;
         fileArtifacts.push(tmpPath);
         // copy the ATT&CK map v7.2 into the test cache
-        fs.copyFileSync(oldMapUri.fsPath, tmpPath.fsPath);
+        await vscode.workspace.fs.copy(oldMapUri, tmpPath, {overwrite: true});
         // now test cacheData with the same tmp directory, knowing that the file should exist but be older than the latest version
         const attackMap: AttackMap | undefined = await extension.cacheData(tmpDir);
         // now check to make sure this is the latest version
@@ -90,7 +76,8 @@ describe('Extension', function () {
     });
     it('downloadAttackMap: should download the specified ATT&CK mapping version', async function () {
         const expectedUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack8.json`);
-        const expectedMapping: AttackMap = JSON.parse(fs.readFileSync(expectedUri.fsPath).toString()) as AttackMap;
+        const contents: Uint8Array = await vscode.workspace.fs.readFile(expectedUri);
+        const expectedMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(contents))) as AttackMap;
         const version = '8.0';
         const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
         const tmpPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, `enterprise-attack.v${version}.json`);
@@ -100,12 +87,12 @@ describe('Extension', function () {
         assert.notStrictEqual(actualContents, '', 'downloadAttackMap() returned an empty string');
         assert.ok(actualContents !== undefined);
         const actualMapping: AttackMap = JSON.parse(actualContents) as AttackMap;
-        assert.deepStrictEqual(expectedMapping, actualMapping, 'Parsed ATT&CK maps are not the same');
+        assert.deepStrictEqual(expectedMap, actualMapping, 'Parsed ATT&CK maps are not the same');
     }).timeout(5000);
     it('downloadAttackMap: should return an empty string if the provided version does not exist', async function () {
         const version = 'ThisDoesNotExist';
         const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
-        const tmpPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, enterpriseAttackFilename);
+        const tmpPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.json');
         // queue this up to be deleted after the test has finished
         fileArtifacts.push(tmpPath);
         const actualContents: string = await helpers.downloadAttackMap(tmpDir, version);
@@ -116,7 +103,7 @@ describe('Extension', function () {
         fileArtifacts.push(tmpDir);
         const fileUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack7.json`);
         const expectedPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, `enterprise-attack.7.2.json`);
-        fs.copyFileSync(fileUri.fsPath, expectedPath.fsPath);
+        await vscode.workspace.fs.copy(fileUri, expectedPath, {overwrite: true});
         fileArtifacts.push(expectedPath);
         const result: vscode.Uri|undefined = await helpers.getLatestCacheVersion(tmpDir);
         assert.strictEqual(result?.fsPath, expectedPath.fsPath);
@@ -126,18 +113,18 @@ describe('Extension', function () {
         fileArtifacts.push(tmpDir);
         const v7Uri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack7.json`);
         const oldPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.7.2.json');
-        fs.copyFileSync(v7Uri.fsPath, oldPath.fsPath);
+        await vscode.workspace.fs.copy(v7Uri, oldPath, {overwrite: true});
         fileArtifacts.push(oldPath);
         const v8Uri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack8.json`);
         const expectedPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.8.0.json');
-        fs.copyFileSync(v8Uri.fsPath, expectedPath.fsPath);
+        await vscode.workspace.fs.copy(v8Uri, expectedPath, {overwrite: true});
         fileArtifacts.push(expectedPath);
         const result: vscode.Uri|undefined = await helpers.getLatestCacheVersion(tmpDir);
         assert.strictEqual(result?.fsPath, expectedPath.fsPath);
     });
     it('getLatestCacheVersion: should return undefined if there are no files in the cache directory', async function () {
         const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'getLatestCacheVersionTest3');
-        fs.mkdirSync(tmpDir.fsPath);
+        await vscode.workspace.fs.createDirectory(tmpDir);
         fileArtifacts.push(tmpDir);
         const result: vscode.Uri|undefined = await helpers.getLatestCacheVersion(tmpDir);
         assert.strictEqual(result, undefined);
@@ -150,8 +137,8 @@ describe('Extension', function () {
     it('getModifiedTime: should return the modified time of an ATT&CK mapping', async function () {
         const fileUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack7.json`);
         const expectedModifiedTime = '2020-07-02T14:18:03.651Z';
-        const mapString: string = fs.readFileSync(fileUri.fsPath).toString();
-        const mapping: AttackMap = JSON.parse(mapString) as AttackMap;
+        const contents: Uint8Array = await vscode.workspace.fs.readFile(fileUri);
+        const mapping: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(contents)));
         assert.strictEqual(helpers.getModifiedTime(mapping), expectedModifiedTime);
     });
     it('getModifiedTime: should return undefined if no modified time could be parsed', async function () {
@@ -178,28 +165,31 @@ describe('Extension', function () {
         assert.ok(tags.length >= 22);
     });
     it('isAttackMapNewer: should return true if prospective is newer than familiar', async function () {
-        const expected = true;
         const prospectiveUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack8.json`);
-        const prospective: AttackMap = JSON.parse(fs.readFileSync(prospectiveUri.fsPath).toString()) as AttackMap;
+        const prospective: Uint8Array = await vscode.workspace.fs.readFile(prospectiveUri);
+        const prospectiveMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(prospective)));
         const familiarUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack7.json`);
-        const familiar: AttackMap = JSON.parse(fs.readFileSync(familiarUri.fsPath).toString()) as AttackMap;
-        assert.strictEqual(helpers.isAttackMapNewer(prospective, familiar), expected);
+        const familiar: Uint8Array = await vscode.workspace.fs.readFile(familiarUri);
+        const familiarMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(familiar)));
+        assert.strictEqual(helpers.isAttackMapNewer(prospectiveMap, familiarMap), true);
     });
     it('isAttackMapNewer: should return false if prospective is older than familiar', async function () {
-        const expected = false;
         const prospectiveUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack7.json`);
-        const prospective: AttackMap = JSON.parse(fs.readFileSync(prospectiveUri.fsPath).toString()) as AttackMap;
+        const prospective: Uint8Array = await vscode.workspace.fs.readFile(prospectiveUri);
+        const prospectiveMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(prospective)));
         const familiarUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack8.json`);
-        const familiar: AttackMap = JSON.parse(fs.readFileSync(familiarUri.fsPath).toString()) as AttackMap;
-        assert.strictEqual(helpers.isAttackMapNewer(prospective, familiar), expected);
+        const familiar: Uint8Array = await vscode.workspace.fs.readFile(familiarUri);
+        const familiarMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(familiar)));
+        assert.strictEqual(helpers.isAttackMapNewer(prospectiveMap, familiarMap), false);
     });
     it('isAttackMapNewer: should return false if prospective is the same as familiar', async function () {
-        const expected = false;
         const prospectiveUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack8.json`);
-        const prospective: AttackMap = JSON.parse(fs.readFileSync(prospectiveUri.fsPath).toString()) as AttackMap;
+        const prospective: Uint8Array = await vscode.workspace.fs.readFile(prospectiveUri);
+        const prospectiveMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(prospective)));
         const familiarUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack8.json`);
-        const familiar: AttackMap = JSON.parse(fs.readFileSync(familiarUri.fsPath).toString()) as AttackMap;
-        assert.strictEqual(helpers.isAttackMapNewer(prospective, familiar), expected);
+        const familiar: Uint8Array = await vscode.workspace.fs.readFile(familiarUri);
+        const familiarMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(familiar)));
+        assert.strictEqual(helpers.isAttackMapNewer(prospectiveMap, familiarMap), false);
     });
 });
 
