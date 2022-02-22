@@ -158,8 +158,11 @@ export function downloadAttackMap(storageUri: vscode.Uri, version: string): Prom
                     });
                     res.on('end', () => {
                         // save the JSON file to the global storage path
-                        vscode.workspace.fs.writeFile(storagePath, Buffer.from(downloadedData, 'utf-8'));
-                        log(`Successfully cached the Enterprise ATT&CK v${version} data @ '${storagePath}'!`);
+                        vscode.workspace.fs.writeFile(storagePath, Buffer.from(downloadedData, 'utf-8')).then(() => {
+                            log(`Successfully cached the Enterprise ATT&CK v${version} data @ '${storagePath}'!`);
+                        }, (reason: any) => {
+                            log(`Encountered an error while attempting to cache Enterprise ATT&CK v${version} data: ${reason}`);
+                        });
                         resolve(downloadedData);
                     });
                 });
