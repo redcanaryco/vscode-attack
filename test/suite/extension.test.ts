@@ -8,8 +8,6 @@ import { configSection, consoleLogger, extensionID, fileArtifacts, ignoreConsole
 
 
 describe('Extension', function () {
-    this.timeout(10000);
-
     beforeEach(ignoreConsoleLogs);
     afterEach(resetState);
     it('should use a cached version of the ATT&CK map if available', async function () {
@@ -80,7 +78,7 @@ describe('Extension', function () {
         const expectedMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(contents))) as AttackMap;
         const version = '8.0';
         const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
-        const tmpPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, `enterprise-attack.v${version}.json`);
+        const tmpPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, `enterprise-attack.${version}.json`);
         // queue this up to be deleted after the test has finished
         fileArtifacts.push(tmpPath);
         const actualContents: string = await helpers.downloadAttackMap(tmpDir, version);
@@ -88,16 +86,13 @@ describe('Extension', function () {
         assert.ok(actualContents !== undefined);
         const actualMapping: AttackMap = JSON.parse(actualContents) as AttackMap;
         assert.deepStrictEqual(expectedMap, actualMapping, 'Parsed ATT&CK maps are not the same');
-    }).timeout(5000);
+    });
     it('downloadAttackMap: should return an empty string if the provided version does not exist', async function () {
         const version = 'ThisDoesNotExist';
         const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
-        const tmpPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.json');
-        // queue this up to be deleted after the test has finished
-        fileArtifacts.push(tmpPath);
         const actualContents: string = await helpers.downloadAttackMap(tmpDir, version);
         assert.strictEqual(actualContents, '', `downloadAttackMap returned something other than an empty string! ${actualContents.substr(0, 10)}...`);
-    }).timeout(5000);
+    });
     it('getLatestCacheVersion: should return the file if only one is in the cache directory', async function () {
         const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'getLatestCacheVersionTest1');
         fileArtifacts.push(tmpDir);
