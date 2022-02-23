@@ -22,8 +22,9 @@ const webExtensionConfig = {
     extensions: ['.ts', '.js'],
     alias: {},
     fallback: {
-        assert: require.resolve('assert'),
-        https: require.resolve('https-browserify')
+        buffer: false,
+        http: false,
+        https: false,
     }
   },
   module: {
@@ -39,11 +40,7 @@ const webExtensionConfig = {
       }
     ]
   },
-  plugins: [
-    new webpack.ProvidePlugin({
-      process: 'process/browser'
-    })
-  ],
+  plugins: [],
   externals: {
     vscode: 'commonjs vscode'
   },
@@ -52,6 +49,7 @@ const webExtensionConfig = {
   },
   devtool: 'nosources-source-map'
 };
+/** @type WebpackConfig */
 const nodeExtensionConfig = {
   mode: 'none',
   target: 'node',
