@@ -1,7 +1,6 @@
 'use strict';
 
 const path = require('path');
-const webpack = require('webpack');
 
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
 /** @type WebpackConfig */
@@ -15,7 +14,8 @@ const webExtensionConfig = {
     filename: '[name].js',
     path: path.join(__dirname, './dist/web'),
     libraryTarget: 'commonjs',
-    devtoolModuleFilenameTemplate: '../../[resource-path]'
+    devtoolModuleFilenameTemplate: '../../[resource-path]',
+    clean: true
   },
   resolve: {
     mainFields: ['browser', 'module', 'main'],
@@ -32,11 +32,7 @@ const webExtensionConfig = {
       {
         test: /\.ts$/,
         exclude: /node_modules/,
-        use: [
-          {
-            loader: 'ts-loader'
-          }
-        ]
+        use: [{ loader: 'ts-loader' }]
       }
     ]
   },
@@ -60,7 +56,8 @@ const nodeExtensionConfig = {
     filename: '[name].js',
     path: path.join(__dirname, './dist/host'),
     libraryTarget: 'commonjs',
-    devtoolModuleFilenameTemplate: '../../[resource-path]'
+    devtoolModuleFilenameTemplate: '../../[resource-path]',
+    clean: true
   },
   resolve: {
     mainFields: ['module', 'main'],
@@ -71,11 +68,7 @@ const nodeExtensionConfig = {
       {
         test: /\.ts$/,
         exclude: /node_modules/,
-        use: [
-          {
-            loader: 'ts-loader'
-          }
-        ]
+        use: [{ loader: 'ts-loader' }]
       }
     ]
   },
