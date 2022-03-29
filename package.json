@@ -183,6 +183,7 @@
         "@typescript-eslint/eslint-plugin": "^2.30.0",
         "@typescript-eslint/parser": "^2.30.0",
         "@vscode/test-electron": "^2.1.2",
+        "@vscode/test-web": "^0.0.24",
         "eslint": "^6.8.0",
         "glob": "^7.2.0",
         "https-browserify": "^1.0.0",
