@@ -10,6 +10,7 @@ on:
     - 'src/**/*'
     - 'README.md'
     - '.github/workflows/build.yml'
+    - 'webpack.config.js'
 
 jobs:
   build:
