@@ -8,6 +8,7 @@ on:
       - 'releases/**/*'
     paths:
     - 'src/**/*'
+    - 'tests/**/*'
     - 'README.md'
     - '.github/workflows/build.yml'
     - 'webpack.config.js'
