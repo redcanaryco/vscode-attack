@@ -73,10 +73,10 @@ describe('Extension', function () {
         // TODO
     });
     it('downloadAttackMap: should download the specified ATT&CK mapping version', async function () {
-        const expectedUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack8.json`);
+        const expectedUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack11.json`);
         const contents: Uint8Array = await vscode.workspace.fs.readFile(expectedUri);
         const expectedMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(contents))) as AttackMap;
-        const version = '8.0';
+        const version = '11.0';
         const tmpDir: vscode.Uri = vscode.Uri.file(os.tmpdir());
         const tmpPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, `enterprise-attack.${version}.json`);
         // queue this up to be deleted after the test has finished
@@ -106,13 +106,13 @@ describe('Extension', function () {
     it('getLatestCacheVersion: should return the newest file if multiple are in the cache directory', async function () {
         const tmpDir: vscode.Uri = vscode.Uri.joinPath(vscode.Uri.file(os.tmpdir()), 'getLatestCacheVersionTest2');
         fileArtifacts.push(tmpDir);
-        const v7Uri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack7.json`);
+        const oldUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack7.json`);
         const oldPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.7.2.json');
-        await vscode.workspace.fs.copy(v7Uri, oldPath, {overwrite: true});
+        await vscode.workspace.fs.copy(oldUri, oldPath, {overwrite: true});
         fileArtifacts.push(oldPath);
-        const v8Uri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack8.json`);
-        const expectedPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.8.0.json');
-        await vscode.workspace.fs.copy(v8Uri, expectedPath, {overwrite: true});
+        const newUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack11.json`);
+        const expectedPath: vscode.Uri = vscode.Uri.joinPath(tmpDir, 'enterprise-attack.11.0.json');
+        await vscode.workspace.fs.copy(newUri, expectedPath, {overwrite: true});
         fileArtifacts.push(expectedPath);
         const result: vscode.Uri|undefined = await helpers.getLatestCacheVersion(tmpDir);
         assert.strictEqual(result?.fsPath, expectedPath.fsPath);
@@ -160,7 +160,7 @@ describe('Extension', function () {
         assert.ok(tags.length >= 22);
     });
     it('isAttackMapNewer: should return true if prospective is newer than familiar', async function () {
-        const prospectiveUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack8.json`);
+        const prospectiveUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack11.json`);
         const prospective: Uint8Array = await vscode.workspace.fs.readFile(prospectiveUri);
         const prospectiveMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(prospective)));
         const familiarUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack7.json`);
@@ -172,16 +172,16 @@ describe('Extension', function () {
         const prospectiveUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack7.json`);
         const prospective: Uint8Array = await vscode.workspace.fs.readFile(prospectiveUri);
         const prospectiveMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(prospective)));
-        const familiarUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack8.json`);
+        const familiarUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack11.json`);
         const familiar: Uint8Array = await vscode.workspace.fs.readFile(familiarUri);
         const familiarMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(familiar)));
         assert.strictEqual(helpers.isAttackMapNewer(prospectiveMap, familiarMap), false);
     });
     it('isAttackMapNewer: should return false if prospective is the same as familiar', async function () {
-        const prospectiveUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack8.json`);
+        const prospectiveUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack11.json`);
         const prospective: Uint8Array = await vscode.workspace.fs.readFile(prospectiveUri);
         const prospectiveMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(prospective)));
-        const familiarUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack8.json`);
+        const familiarUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/attack11.json`);
         const familiar: Uint8Array = await vscode.workspace.fs.readFile(familiarUri);
         const familiarMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(familiar)));
         assert.strictEqual(helpers.isAttackMapNewer(prospectiveMap, familiarMap), false);
