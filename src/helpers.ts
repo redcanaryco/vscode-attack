@@ -220,7 +220,9 @@ export async function getLatestCacheVersion(cacheUri: vscode.Uri): Promise<vscod
             return entry[1] === vscode.FileType.File && entry[0].match(pattern);
         }).map((entry: [string, vscode.FileType]) => {
             return entry[0];
-        }).sort().pop();
+        }).sort((a: string, b: string) => {
+            return a.localeCompare(b, undefined, { numeric: true});
+        }).pop();
         if (latestVersionName !== undefined) {
             latestVersionPath = vscode.Uri.joinPath(cacheUri, latestVersionName);
         }
