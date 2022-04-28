@@ -166,7 +166,7 @@
         "lint": "eslint --ext .ts src/",
         "linttests": "eslint --ext .ts test/",
         "package-web": "webpack --mode production --devtool hidden-source-map",
-        "pretest": "npm run compile",
+        "pretest": "npm run compile && npm run test-compile",
         "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. .",
         "test": "node ./out/test/runTest.js",
         "test-compile": "tsc -p ./",
