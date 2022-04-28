@@ -1,12 +1,10 @@
-import * as fs from 'fs';
 import * as vscode from 'vscode';
-
 
 export const configSection = 'vscode-attack';
 export const extensionID = 'redcanary.vscode-attack';
 // some tests may want to suppress log messages for cleaner output, so save the log function for restoration later
 export const consoleLogger = console.log;
-export let fileArtifacts: string[] = [];
+export let fileArtifacts: vscode.Uri[] = [];
 export let disposables: vscode.Disposable[] = [];
 
 // public API returned by our extension mostly just defined here
@@ -25,28 +23,23 @@ export function ignoreConsoleLogs(): void {
 
 // clean up environment after tests
 export function resetState(): void {
-    fileArtifacts.forEach((artifactPath: string) => {
-        if (fs.existsSync(artifactPath)) {
-            // get info about the file, but don't follow symlinks
-            const artifactStats: fs.Stats = fs.lstatSync(artifactPath);
-            if (artifactStats.isDirectory()) {
-                fs.rmdir(artifactPath, (err) => {
-                    if (err) { consoleLogger(`Couldn't remove ${artifactPath}: ${err.message}`); }
-                });
-            }
-            else {
-                fs.unlink(artifactPath, (err) => {
-                    if (err) { consoleLogger(`Couldn't remove ${artifactPath}: ${err.message}`); }
-                });
+    for (let index = 0; index < fileArtifacts.length; index++) {
+        const artifact: vscode.Uri|undefined = fileArtifacts.pop();
+        if (artifact !== undefined) {
+            try {
+                vscode.workspace.fs.delete(artifact, {recursive: true, useTrash: false});
+            } catch (err) {
+                consoleLogger(`Couldn't remove ${artifact}: ${err}`);
             }
         }
-    });
-    fileArtifacts = [];
+    }
     // forcefully dispose of any events set up during tests
-    disposables.forEach((disposable: vscode.Disposable) => {
-        disposable.dispose();
-    });
-    disposables = [];
+    for (let index = 0; index < disposables.length; index++) {
+        const disposable: vscode.Disposable|undefined = disposables.pop();
+        if (disposable !== undefined) {
+            disposable.dispose();
+        }
+    }
     // reset console.log function
     console.log = consoleLogger;
 }

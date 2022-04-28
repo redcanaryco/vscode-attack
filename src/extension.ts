@@ -1,5 +1,4 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { StringDecoder } from 'string_decoder';
 import * as vscode from 'vscode';
 import { configSection, debug, setCompletionItemFormat, setDebugLogState } from './configuration';
 import { log } from './helpers';
@@ -11,7 +10,6 @@ import { init as initTactics, register as registerTactics } from './tactics';
 import { init as initTechniques, register as registerTechniques } from './techniques';
 import { search } from './search';
 import { insertLink } from './insertLink';
-
 
 // track the providers we have so we can recreate them in case applicableFiles gets updated or they get toggled
 const Providers = {
@@ -46,50 +44,43 @@ const currentProviders = Object.create(Providers);
     Check the given extension context's global storage for the file with name 'filename'
     Retrieve the file if it exists or update the cache with data from the provided URL if the file cannot be found
 */
-export async function cacheData(storageDir: string): Promise<AttackMap|undefined> {
+export async function cacheData(storageUri: vscode.Uri): Promise<AttackMap|undefined> {
     let result: AttackMap|undefined = undefined;
     log('Checking extension cache for MITRE ATT&CK mapping.');
-    if (!fs.existsSync(storageDir)) {
-        // cache the newest version of ATT&CK
-        if (debug) { log('Cached directory does not exist. Creating.'); }
-        fs.mkdirSync(storageDir, {recursive: true});
-        result = await helpers.downloadLatestAttackMap(storageDir);
+    // TODO: Figure out if this will be skipped when storageUri exists
+    await vscode.workspace.fs.createDirectory(storageUri);
+    const cachedPath: vscode.Uri|undefined = await helpers.getLatestCacheVersion(storageUri);
+    if (cachedPath === undefined) {
+        // no files found - download the latest version from GitHub
+        log('Nothing found in extension cache. Downloading latest version of MITRE ATT&CK mapping');
+        result = await helpers.downloadLatestAttackMap(storageUri);
     }
     else {
-        // check the cache directory for matching files
-        const cachedPath: string|undefined = await helpers.getLatestCacheVersion(storageDir);
         if (debug) { log(`Using cache path: ${cachedPath}`); }
-        if (cachedPath === undefined) {
-            // no files found - download the latest version from GitHub
-            log('Nothing found in extension cache. Downloading latest version of MITRE ATT&CK mapping');
-            result = await helpers.downloadLatestAttackMap(storageDir);
-        }
-        else {
-            // files found - compare the cached version to the newest version on GitHub
-            // Example: enterprise-attack.8.0.json => 8.0
-            const cachedVersion = path.basename(cachedPath).replace('enterprise-attack.', '').replace('.json', '');
-            if (debug) { log(`Cached version: ${cachedVersion}`); }
-            try {
-                const availableVersions: Array<string> = await helpers.getVersions();
-                const onlineVersion = `${availableVersions.sort()[availableVersions.length - 1]}`;
-                if (debug) { log(`Online version: ${onlineVersion}`); }
-                if (cachedVersion < onlineVersion) {
-                    // if online version is newer than the cached one, download and use the online version
-                    vscode.window.showInformationMessage('ATT&CK: Identified a new version of the ATT&CK mapping! Replacing cached version.');
-                    log(`Identified a new version of the ATT&CK mapping! Replacing cached map (${cachedVersion}) with downloaded map (${onlineVersion})`);
-                    result = await helpers.downloadLatestAttackMap(storageDir);
-                }
-                else {
-                    // otherwise just use the cached one
-                    log(`Nothing to do. Cached version is on latest ATT&CK version ${onlineVersion}`);
-                    const cachedData: string = fs.readFileSync(cachedPath, {encoding: 'utf8'});
-                    result = JSON.parse(cachedData) as AttackMap;
-                }
-            } catch (error) {
-                log(`Could not download ATT&CK version from GitHub. Falling back to cached version ${cachedVersion}.`);
-                const cachedData: string = fs.readFileSync(cachedPath, {encoding: 'utf8'});
-                result = JSON.parse(cachedData) as AttackMap;
+        // files found - compare the cached version to the newest version on GitHub
+        // Example: enterprise-attack.8.0.json => 8.0
+        const cachedVersion = helpers.extractAttackVersion(cachedPath);
+        if (debug) { log(`Cached version: ${cachedVersion}`); }
+        try {
+            const availableVersions: Array<string> = await helpers.getVersions();
+            const onlineVersion = `${availableVersions.sort()[availableVersions.length - 1]}`;
+            if (debug) { log(`Online version: ${onlineVersion}`); }
+            if (cachedVersion < onlineVersion) {
+                // if online version is newer than the cached one, download and use the online version
+                vscode.window.showInformationMessage('ATT&CK: Identified a new version of the ATT&CK mapping! Replacing cached version.');
+                log(`Identified a new version of the ATT&CK mapping! Replacing cached map (${cachedVersion}) with downloaded map (${onlineVersion})`);
+                result = await helpers.downloadLatestAttackMap(storageUri);
             }
+            else {
+                // otherwise just use the cached one
+                log(`Nothing to do. Cached version is on latest ATT&CK version ${onlineVersion}`);
+                const contents: Uint8Array = await vscode.workspace.fs.readFile(cachedPath);
+                result = JSON.parse(new StringDecoder('utf8').end(Buffer.from(contents))) as AttackMap;
+            }
+        } catch (error) {
+            log(`Could not download ATT&CK version from GitHub. Falling back to cached version ${cachedVersion}.`);
+            const contents: Uint8Array = await vscode.workspace.fs.readFile(cachedPath);
+            result = JSON.parse(new StringDecoder('utf8').end(Buffer.from(contents))) as AttackMap;
         }
     }
     return result;
@@ -111,11 +102,11 @@ function toggleStatusBar(statusBarItem: vscode.StatusBarItem, editor: vscode.Tex
 /*
     Create a status bar item that will display the current version of ATT&CK in use
 */
-async function createStatusBar(storageDir: string): Promise<vscode.StatusBarItem|undefined> {
+async function createStatusBar(storageUri: vscode.Uri): Promise<vscode.StatusBarItem|undefined> {
     let statusBarItem: vscode.StatusBarItem|undefined = undefined;
-    const cachedPath: string|undefined = await helpers.getLatestCacheVersion(storageDir);
+    const cachedPath: vscode.Uri|undefined = await helpers.getLatestCacheVersion(storageUri);
     if (cachedPath !== undefined) {
-        const version = path.basename(cachedPath).replace('enterprise-attack.', '').replace('.json', '');
+        const version: string = helpers.extractAttackVersion(cachedPath);
         const itemText = `ATT&CK v${version}`;
         statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
         statusBarItem.accessibilityInformation = {label: itemText};
@@ -165,7 +156,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
     let software: Array<Software> = new Array<Software>();
     let tactics: Array<Tactic> = new Array<Tactic>();
     let techniques: Array<Technique> = new Array<Technique>();
-    const attackData: AttackMap|undefined = await cacheData(context.globalStorageUri.fsPath);
+    const attackData: AttackMap|undefined = await cacheData(context.globalStorageUri);
     if (attackData === undefined) {
         log('Could not parse ATT&CK data from cache! Please restart the IDE');
         vscode.window.showErrorMessage('ATT&CK: Could not parse ATT&CK data from cache! Please restart the IDE');
@@ -210,7 +201,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
         }));
         if (debug) { log('Registered command: vscode-attack.insertLink'); }
         // window
-        const statusBarItem: vscode.StatusBarItem|undefined = await createStatusBar(context.globalStorageUri.fsPath);
+        const statusBarItem: vscode.StatusBarItem|undefined = await createStatusBar(context.globalStorageUri);
         if (statusBarItem !== undefined) {
             context.subscriptions.push(statusBarItem);
             toggleStatusBar(statusBarItem, vscode.window.activeTextEditor);

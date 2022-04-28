@@ -1,8 +1,7 @@
 import * as assert from 'assert';
-import * as path from 'path';
 import * as vscode from 'vscode';
-import * as search from '../../search';
-import { disposables, extensionID, ignoreConsoleLogs, resetState } from '../suite/testHelpers';
+import * as search from '../../src/search';
+import { extensionID, ignoreConsoleLogs, resetState } from './testHelpers';
 
 
 describe('Command: search', function () {
@@ -67,8 +66,7 @@ describe('Command: search', function () {
 describe('Command: insertLink', function () {
     const events: Array<vscode.Disposable> = [];
     const insertLinkCommand = 'vscode-attack.insertLink';
-    const testPath: string = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'files', 'links.md');
-    const testUri: vscode.Uri = vscode.Uri.file(testPath);
+    const testUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/links.md`);
     let ext: vscode.Extension<unknown> | undefined;
     const attackObjects: Array<Group|Mitigation|Software|Tactic|Technique> = [
         {
