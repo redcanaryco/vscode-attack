@@ -29,6 +29,13 @@ export function log(message: string): void {
 }
 
 /*
+    Sort two strings numerically: '9' < '11'
+*/
+export function versionSorter(a: string, b: string): number {
+    return a.localeCompare(b, undefined, { numeric: true});
+}
+
+/*
     Parse the last modified time of the given ATT&CK mapping
 */
 export function getModifiedTime(mapping: AttackMap): string|undefined {
@@ -50,7 +57,7 @@ export function getModifiedTime(mapping: AttackMap): string|undefined {
 /*
     Collect all GitHub tags matching the specified prefix
 */
-export function getVersions(prefix = 'ATT&CK-v'): Promise<Array<string>> {
+export function getVersions(prefix = 'ATT&CK-v', ignoreBeta: boolean = true): Promise<Array<string>> {
     // just a generic GitHub interface - not specific to ATT&CK
     // ... so let's just leave it out of the interfaces module, since it's only useful here
     interface Tag {
@@ -95,6 +102,12 @@ export function getVersions(prefix = 'ATT&CK-v'): Promise<Array<string>> {
                         if (label === '') { label = prefix; }
                         return label;
                     });
+                    if (ignoreBeta) {
+                        log(`Ignoring beta versions of ATT&CK maps`);
+                        filteredTags = filteredTags.filter((version: string) => {
+                            return !version.includes('beta');
+                        });
+                    }
                     resolve(filteredTags);
                 }
                 else {
@@ -187,11 +200,16 @@ export async function downloadLatestAttackMap(storageUri: vscode.Uri): Promise<A
     try {
         const availableVersions: Array<string> = await getVersions();
         // always look for the latest tagged version
-        const version = `${availableVersions.sort()[availableVersions.length - 1]}`;
+        const version = `${availableVersions.sort(versionSorter)[availableVersions.length - 1]}`;
         try {
-            const downloadedData: string = await downloadAttackMap(storageUri, version);
-            // and once it's cached, parse + return it
-            result = JSON.parse(downloadedData) as AttackMap;
+            if (version !== undefined) {
+                const downloadedData: string = await downloadAttackMap(storageUri, version);
+                // and once it's cached, parse + return it
+                result = JSON.parse(downloadedData) as AttackMap;
+            }
+            else {
+                throw Error('No ATT&CK versions found online!');
+            }
         } catch (err) {
             log(`downloadLatestAttackMap() failed due to '${err}'`);
         }
@@ -212,17 +230,16 @@ export function extractAttackVersion(fileUri: vscode.Uri): string {
     Get the newest version of the ATT&CK map in the specified cache directory
 */
 export async function getLatestCacheVersion(cacheUri: vscode.Uri): Promise<vscode.Uri|undefined> {
-    const pattern: RegExp = /enterprise-attack\..*\.json/;
+    const pattern: RegExp = /enterprise-attack\.[0-9\.]+\.json/;
     let latestVersionPath: vscode.Uri|undefined = undefined;
     try {
         const entries: [string, vscode.FileType][] = await vscode.workspace.fs.readDirectory(cacheUri);
-        const latestVersionName: string|undefined = entries.filter((entry: [string, vscode.FileType]) => {
+        const sortedEntries: Array<string> = entries.filter((entry: [string, vscode.FileType]) => {
             return entry[1] === vscode.FileType.File && entry[0].match(pattern);
         }).map((entry: [string, vscode.FileType]) => {
             return entry[0];
-        }).sort((a: string, b: string) => {
-            return a.localeCompare(b, undefined, { numeric: true});
-        }).pop();
+        }).sort(versionSorter);
+        const latestVersionName: string|undefined = sortedEntries.pop();
         if (latestVersionName !== undefined) {
             latestVersionPath = vscode.Uri.joinPath(cacheUri, latestVersionName);
         }

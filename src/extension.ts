@@ -63,13 +63,14 @@ export async function cacheData(storageUri: vscode.Uri): Promise<AttackMap|undef
         if (debug) { log(`Cached version: ${cachedVersion}`); }
         try {
             const availableVersions: Array<string> = await helpers.getVersions();
-            const onlineVersion = `${availableVersions.sort()[availableVersions.length - 1]}`;
+            const onlineVersion = `${availableVersions.sort(helpers.versionSorter)[availableVersions.length - 1]}`;
             if (debug) { log(`Online version: ${onlineVersion}`); }
-            if (cachedVersion < onlineVersion) {
+            if (helpers.versionSorter(cachedVersion, onlineVersion) < 0) {
                 // if online version is newer than the cached one, download and use the online version
                 vscode.window.showInformationMessage('ATT&CK: Identified a new version of the ATT&CK mapping! Replacing cached version.');
                 log(`Identified a new version of the ATT&CK mapping! Replacing cached map (${cachedVersion}) with downloaded map (${onlineVersion})`);
-                result = await helpers.downloadLatestAttackMap(storageUri);
+                const downloadedData: string = await helpers.downloadAttackMap(storageUri, onlineVersion);
+                result = JSON.parse(downloadedData) as AttackMap;
             }
             else {
                 // otherwise just use the cached one
