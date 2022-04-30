@@ -4,6 +4,10 @@ import { groupRegex } from '../../src/helpers';
 import { configSection, extensionID, ignoreConsoleLogs, resetState, setTestConfig } from './testHelpers';
 
 
+function isGroup(item: vscode.CompletionItem) {
+    return groupRegex.test(`${item.detail}`);
+}
+
 describe('Groups', function () {
     const testUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/test.md`);
     let ext: vscode.Extension<unknown> | undefined;
@@ -41,9 +45,7 @@ describe('Groups', function () {
         const position: vscode.Position = new vscode.Position(10, expectedName.length);
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);
-        const groupResults: Array<vscode.CompletionItem> = results.items.filter((item: vscode.CompletionItem) => {
-            return item instanceof vscode.CompletionItem && groupRegex.test(`${item.detail}`);
-        });
+        const groupResults: Array<vscode.CompletionItem> = results.items.filter(isGroup);
         assert.strictEqual(groupResults.length, 1);
         assert.ok(groupResults[0] instanceof vscode.CompletionItem);
         assert.strictEqual(groupResults[0].label, expectedName);

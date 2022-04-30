@@ -5,6 +5,10 @@ import { configSection, extensionID, ignoreConsoleLogs, resetState, setTestConfi
 
 const testUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/test.md`);
 
+function isSoftware(item: vscode.CompletionItem) {
+    return softwareRegex.test(`${item.detail}`);
+}
+
 describe('Software', function () {
     let ext: vscode.Extension<unknown> | undefined;
     let modifiedConfig: vscode.WorkspaceConfiguration;
@@ -42,9 +46,7 @@ describe('Software', function () {
         const position: vscode.Position = new vscode.Position(12, expectedName.length);
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);
-        const softwareResults: Array<vscode.CompletionItem> = results.items.filter((item: vscode.CompletionItem) => {
-            return item instanceof vscode.CompletionItem && softwareRegex.test(`${item.detail}`);
-        });
+        const softwareResults: Array<vscode.CompletionItem> = results.items.filter(isSoftware);
         assert.strictEqual(softwareResults.length, 1);
         assert.ok(softwareResults[0] instanceof vscode.CompletionItem);
         assert.strictEqual(softwareResults[0].label, expectedName);

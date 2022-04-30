@@ -5,6 +5,10 @@ import { configSection, extensionID, ignoreConsoleLogs, resetState, setTestConfi
 
 const testUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/test.md`);
 
+function isTactic(item: vscode.CompletionItem) {
+    return (tacticRegex.test(`${item.detail}`) || tacticRegex.test(`${item.label}`)) && !item.label.toString().includes('(technique description)');
+}
+
 describe('Tactics', function () {
     this.timeout(5000);
     let ext: vscode.Extension<unknown> | undefined;
@@ -37,11 +41,12 @@ describe('Tactics', function () {
         const position: vscode.Position = new vscode.Position(6, expectedTactic.length);
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);
-        assert.strictEqual(results.items.length, 1);
-        assert.ok(results.items[0] instanceof vscode.CompletionItem);
-        assert.strictEqual(results.items[0].label, expectedTactic);
-        assert.strictEqual(results.items[0].detail, expectedTactic);
-        assert.strictEqual(results.items[0].kind, vscode.CompletionItemKind.Value);
+        const completionItems: Array<vscode.CompletionItem> = results.items.filter(isTactic);
+        assert.strictEqual(completionItems.length, 1);
+        assert.ok(completionItems[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(completionItems[0].label, expectedTactic);
+        assert.strictEqual(completionItems[0].detail, expectedTactic);
+        assert.strictEqual(completionItems[0].kind, vscode.CompletionItemKind.Value);
     });
     it('should provide all completion items containing a tactic name', async function () {
         const expectedTactic = 'TA0005';
@@ -51,9 +56,7 @@ describe('Tactics', function () {
         assert.ok(results instanceof vscode.CompletionList);
         // some other providers (probably technique) may return items by searching descriptions
         // ... let's filter these out by just finding the ones from this provider
-        const tacticItems: Array<vscode.CompletionItem> = results.items.filter((item) => {
-            return item instanceof vscode.CompletionItem && tacticRegex.test(`${item.detail}`);
-        });
+        const tacticItems: Array<vscode.CompletionItem> = results.items.filter(isTactic);
         assert.strictEqual(tacticItems.length, 1);
         assert.ok(tacticItems[0] instanceof vscode.CompletionItem);
         assert.strictEqual(tacticItems[0].detail, expectedTactic);
@@ -108,9 +111,10 @@ describe('Tactic Settings', function () {
         const position: vscode.Position = new vscode.Position(6, tid.length);
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);
-        assert.strictEqual(results.items.length, 1);
-        assert.ok(results.items[0] instanceof vscode.CompletionItem);
-        assert.strictEqual(results.items[0].detail, expectedDetail);
+        const completionItems: Array<vscode.CompletionItem> = results.items.filter(isTactic);
+        assert.strictEqual(completionItems.length, 1);
+        assert.ok(completionItems[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(completionItems[0].detail, expectedDetail);
     });
     it('completionFormat: should show only a tactic name when set to name', async function () {
         const tid = 'TA0002';
@@ -119,9 +123,10 @@ describe('Tactic Settings', function () {
         const position: vscode.Position = new vscode.Position(6, tid.length);
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);
-        assert.strictEqual(results.items.length, 1);
-        assert.ok(results.items[0] instanceof vscode.CompletionItem);
-        assert.strictEqual(results.items[0].detail, expectedDetail);
+        const completionItems: Array<vscode.CompletionItem> = results.items.filter(isTactic);
+        assert.strictEqual(completionItems.length, 1);
+        assert.ok(completionItems[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(completionItems[0].detail, expectedDetail);
     });
     it('completionFormat: should show only a link when set to link', async function () {
         const tid = 'TA0002';
@@ -130,9 +135,10 @@ describe('Tactic Settings', function () {
         const position: vscode.Position = new vscode.Position(6, tid.length);
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);
-        assert.strictEqual(results.items.length, 1);
-        assert.ok(results.items[0] instanceof vscode.CompletionItem);
-        assert.strictEqual(results.items[0].detail, expectedDetail);
+        const completionItems: Array<vscode.CompletionItem> = results.items.filter(isTactic);
+        assert.strictEqual(completionItems.length, 1);
+        assert.ok(completionItems[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(completionItems[0].detail, expectedDetail);
     });
     it('completionFormat: should show only a tactic name when set to fullname', async function () {
         const tid = 'TA0002';
@@ -141,9 +147,10 @@ describe('Tactic Settings', function () {
         const position: vscode.Position = new vscode.Position(6, tid.length);
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);
-        assert.strictEqual(results.items.length, 1);
-        assert.ok(results.items[0] instanceof vscode.CompletionItem);
-        assert.strictEqual(results.items[0].detail, expectedDetail);
+        const completionItems: Array<vscode.CompletionItem> = results.items.filter(isTactic);
+        assert.strictEqual(completionItems.length, 1);
+        assert.ok(completionItems[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(completionItems[0].detail, expectedDetail);
     });
     it('completionFormat: should show a tactic ID and tactic name when set to id-name', async function () {
         const tid = 'TA0002';
@@ -152,9 +159,10 @@ describe('Tactic Settings', function () {
         const position: vscode.Position = new vscode.Position(6, tid.length);
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);
-        assert.strictEqual(results.items.length, 1);
-        assert.ok(results.items[0] instanceof vscode.CompletionItem);
-        assert.strictEqual(results.items[0].detail, expectedDetail);
+        const completionItems: Array<vscode.CompletionItem> = results.items.filter(isTactic);
+        assert.strictEqual(completionItems.length, 1);
+        assert.ok(completionItems[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(completionItems[0].detail, expectedDetail);
     });
     it('completionFormat: should show a tactic ID and tactic name when set to id-fullname', async function () {
         const tid = 'TA0002';
@@ -163,9 +171,10 @@ describe('Tactic Settings', function () {
         const position: vscode.Position = new vscode.Position(6, tid.length);
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);
-        assert.strictEqual(results.items.length, 1);
-        assert.ok(results.items[0] instanceof vscode.CompletionItem);
-        assert.strictEqual(results.items[0].detail, expectedDetail);
+        const completionItems: Array<vscode.CompletionItem> = results.items.filter(isTactic);
+        assert.strictEqual(completionItems.length, 1);
+        assert.ok(completionItems[0] instanceof vscode.CompletionItem);
+        assert.strictEqual(completionItems[0].detail, expectedDetail);
     });
     it('should enable the Tactic providers when set to true', async function () {
         await setTestConfig('tactics', true, modifiedConfig);

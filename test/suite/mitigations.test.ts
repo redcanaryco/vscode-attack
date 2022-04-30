@@ -6,6 +6,10 @@ import { configSection, extensionID, ignoreConsoleLogs, resetState, setTestConfi
 
 const testUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/test.md`);
 
+function isMitigation(item: vscode.CompletionItem) {
+    return mitigationRegex.test(`${item.detail}`);
+}
+
 describe('Mitigations', function () {
     let ext: vscode.Extension<unknown> | undefined;
     let modifiedConfig: vscode.WorkspaceConfiguration;
@@ -42,9 +46,7 @@ describe('Mitigations', function () {
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);
         // filter out results from other providers
-        const mitigationResults: Array<vscode.CompletionItem> = results.items.filter((item: vscode.CompletionItem) => {
-            return item instanceof vscode.CompletionItem && mitigationRegex.test(`${item.detail}`);
-        });
+        const mitigationResults: Array<vscode.CompletionItem> = results.items.filter(isMitigation);
         assert.strictEqual(mitigationResults.length, 1);
         assert.ok(mitigationResults[0] instanceof vscode.CompletionItem);
         assert.strictEqual(mitigationResults[0].label, expectedName);

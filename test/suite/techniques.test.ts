@@ -5,6 +5,13 @@ import { ATTACKExtensionAPI, configSection, extensionID, ignoreConsoleLogs, rese
 
 const testUri: vscode.Uri = vscode.Uri.file(`${__dirname}/../../../test/files/test.md`);
 
+function isTechnique(item: vscode.CompletionItem) {
+    return techniqueRegex.test(`${item.detail}`);
+}
+function isTechniqueDescription(item: vscode.CompletionItem) {
+    return item.label.toString().includes('technique description');
+}
+
 describe('Techniques', function () {
     this.timeout(5000);
     let exports: ATTACKExtensionAPI;
@@ -70,9 +77,7 @@ describe('Techniques', function () {
         // most completion items don't get completely resolved (documentation, whitespace, etc.) until selected
         // ... so only validate the label for now
         assert.ok(results instanceof vscode.CompletionList);
-        const techniqueItems: Array<vscode.CompletionItem> = results.items.filter((item) => {
-            return item instanceof vscode.CompletionItem && techniqueRegex.test(`${item.detail}`);
-        });
+        const techniqueItems: Array<vscode.CompletionItem> = results.items.filter(isTechnique);
         assert.strictEqual(techniqueItems.length, 2);
         techniqueItems.forEach((item: vscode.CompletionItem) => {
             assert.ok(item instanceof vscode.CompletionItem);
@@ -91,9 +96,7 @@ describe('Techniques', function () {
         // items from description searches should have all fields filled out
         assert.ok(results instanceof vscode.CompletionList);
         // filter out results from other providers
-        const techniqueItems: Array<vscode.CompletionItem> = results.items.filter((item) => {
-            return item instanceof vscode.CompletionItem && item.label.toString().includes('technique description');
-        });
+        const techniqueItems: Array<vscode.CompletionItem> = results.items.filter(isTechniqueDescription);
         assert.strictEqual(techniqueItems.length, 1);
         assert.ok(techniqueItems[0] instanceof vscode.CompletionItem);
         assert.strictEqual(techniqueItems[0].label, expectedLabel);
@@ -109,9 +112,7 @@ describe('Techniques', function () {
         const results = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', testUri, position);
         assert.ok(results instanceof vscode.CompletionList);
         // filter out results from other providers
-        const techniqueItems: Array<vscode.CompletionItem> = results.items.filter((item) => {
-            return item instanceof vscode.CompletionItem && item.label.toString().includes('technique description');
-        });
+        const techniqueItems: Array<vscode.CompletionItem> = results.items.filter(isTechniqueDescription);
         assert.strictEqual(techniqueItems.length, 0);
     });
     it('should not search descriptions if the user is searching for a revoked TID that is not available', async function () {

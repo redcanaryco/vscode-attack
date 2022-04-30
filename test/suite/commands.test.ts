@@ -35,9 +35,9 @@ describe('Command: search', function () {
     it('should return all techniques with name containing a term', async function () {
         const term = 'PowerShell';
         // Should return both 'PowerShell' and 'PowerShell Profile'
-        const expected: Array<string> = new Array<string>('T1059.001', 'T1546.013');
+        const expected: Array<string> = new Array<string>('T1059.001', 'T1546.013').sort();
         const results: Array<Technique> = search.doSearch(term, exports.getAllTechniques());
-        const actual: Array<string> = results.map<string>((t: Technique) => { return t.id; });
+        const actual: Array<string> = results.map<string>((t: Technique) => { return t.id; }).sort();
         assert.deepStrictEqual(actual, expected);
     });
     it('should search technique descriptions for a term when it is not in any technique names', function () {
