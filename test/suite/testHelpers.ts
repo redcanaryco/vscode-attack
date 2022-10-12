@@ -26,11 +26,9 @@ export function resetState(): void {
     for (let index = 0; index < fileArtifacts.length; index++) {
         const artifact: vscode.Uri|undefined = fileArtifacts.pop();
         if (artifact !== undefined) {
-            try {
-                vscode.workspace.fs.delete(artifact, {recursive: true, useTrash: false});
-            } catch (err) {
-                consoleLogger(`Couldn't remove ${artifact}: ${err}`);
-            }
+            vscode.workspace.fs.delete(artifact, {recursive: true, useTrash: false}).then(undefined,
+                (err) => { consoleLogger(`Couldn't remove ${artifact}: ${err}`); }
+            );
         }
     }
     // forcefully dispose of any events set up during tests

@@ -99,7 +99,7 @@ describe('Helpers: getVersions', function () {
     });
     it('should return one tag for a very specific prefix', async function () {
         const prefix = 'subtechniques-beta';
-        const tags: Array<string> | undefined = await helpers.getVersions(prefix);
+        const tags: Array<string> | undefined = await helpers.getVersions(prefix, false);
         assert.ok(tags !== undefined);
         assert.strictEqual(tags.length, 1);
         assert.strictEqual(tags[0], prefix);
