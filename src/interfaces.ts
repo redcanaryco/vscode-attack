@@ -1,3 +1,13 @@
+type MatrixType = 'enterprise-attack' | 'mobile-attack' | 'ics-attack';
+
+interface MatrixConfig {
+    type: MatrixType;
+    urlPath: string;
+    killChainName: string;
+    displayName: string;
+    minVersion: string;
+}
+
 interface AttackMap {
     type: string;
     id: string;
@@ -18,6 +28,7 @@ interface AttackObject {
     x_mitre_aliases: Array<string>;		// same function as "aliases" key, but for some reason this is also here
     x_mitre_is_subtechnique: boolean;
     x_mitre_deprecated: boolean;
+    x_mitre_matrix: MatrixType;
 }
 interface ExternalReference {
     source_name: string;
@@ -31,6 +42,7 @@ interface Group {
         long: string;
     };
     id: string;
+    matrix: MatrixType;
     name: string;
     url: string;
 }
@@ -50,6 +62,7 @@ interface Mitigation {
         long: string;
     };
     id: string;
+    matrix: MatrixType;
     name: string;
     url: string;
 }
@@ -60,6 +73,7 @@ interface Software {
         long: string;
     };
     id: string;
+    matrix: MatrixType;
     name: string;
     url: string;
 }
@@ -69,6 +83,7 @@ interface Tactic {
         long: string;
     };
     id: string;
+    matrix: MatrixType;
     name: string;
     url: string;
 }
@@ -79,6 +94,7 @@ interface Technique {
         long: string;
     };
     id: string;
+    matrix: MatrixType;
     name: string;
     parent: Technique | undefined;
     revoked: boolean;

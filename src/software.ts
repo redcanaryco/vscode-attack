@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { completionFormat, configSection, debug } from './configuration';
+import { completionFormat, configSection, debug, getMatrixBadge } from './configuration';
 import { minTermLength, log, softwareRegex } from './helpers';
 
 /*
@@ -39,7 +39,7 @@ function buildSoftwareDescription(software: Software, descriptionType: string|un
     if (descriptionType === undefined) { descriptionType = vscode.workspace.getConfiguration(configSection).get('description'); }
     const mdBuilder: vscode.MarkdownString = new vscode.MarkdownString(undefined);
     // title
-    mdBuilder.appendMarkdown(`### ${software.name}\n`);
+    mdBuilder.appendMarkdown(`### ${software.name} ${getMatrixBadge(software.matrix)}\n`);
     // source link
     if (software.url !== undefined) { mdBuilder.appendMarkdown(`[Source Link](${software.url})\n\n`); }
     else { mdBuilder.appendMarkdown(`No source link available\n\n`); }
@@ -67,6 +67,7 @@ export async function init(attackData: AttackMap): Promise<Array<Software>> {
                     long: description
                 },
                 id: '<unknown>',
+                matrix: item.x_mitre_matrix || 'enterprise-attack',
                 name: item.name,
                 url: '<unknown>'
             };

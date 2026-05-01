@@ -22,6 +22,27 @@ export const minTermLength = 5;
 const httpTimeout: number = 5000;
 
 /*
+    Compare two ATT&CK version strings semantically (e.g. "16.1" > "9.0")
+    Returns negative if a < b, 0 if equal, positive if a > b
+*/
+export function compareVersions(a: string, b: string): number {
+    const parse = (v: string): { major: number; minor: number; suffix: string } => {
+        const [base, ...rest] = v.split('-');
+        const suffix = rest.join('-');
+        const [major, minor] = base.split('.').map(n => parseInt(n, 10));
+        return { major: major || 0, minor: minor || 0, suffix };
+    };
+    const va = parse(a);
+    const vb = parse(b);
+    if (va.major !== vb.major) { return va.major - vb.major; }
+    if (va.minor !== vb.minor) { return va.minor - vb.minor; }
+    if (va.suffix === vb.suffix) { return 0; }
+    if (va.suffix === '') { return 1; }
+    if (vb.suffix === '') { return -1; }
+    return va.suffix.localeCompare(vb.suffix);
+}
+
+/*
     Send a given message to the MITRE ATT&CK output channel with a timestamp
 */
 export function log(message: string): void {
@@ -180,39 +201,55 @@ export function downloadAttackMap(storageUri: vscode.Uri, version: string): Prom
 }
 
 /*
-    Download the latest version of the MIRE ATT&CK map - just a wrapper for some repeat code
+    Download a specific version of the ATT&CK map, or the latest if requestedVersion is undefined or 'latest'
 */
-export async function downloadLatestAttackMap(storageUri: vscode.Uri): Promise<AttackMap|undefined> {
+export async function downloadRequestedAttackMap(storageUri: vscode.Uri, requestedVersion?: string): Promise<AttackMap|undefined> {
     let result: AttackMap|undefined = undefined;
     try {
         const availableVersions: Array<string> = await getVersions();
-        // always look for the latest tagged version
-        const version = `${availableVersions.sort()[availableVersions.length - 1]}`;
+        let version: string;
+        if (requestedVersion === undefined || requestedVersion === 'latest') {
+            version = availableVersions.sort(compareVersions)[availableVersions.length - 1];
+        } else if (availableVersions.includes(requestedVersion)) {
+            version = requestedVersion;
+        } else {
+            log(`Requested version '${requestedVersion}' not found. Falling back to latest.`);
+            vscode.window.showWarningMessage(`ATT&CK: Version '${requestedVersion}' not found. Using latest version.`);
+            version = availableVersions.sort(compareVersions)[availableVersions.length - 1];
+        }
         try {
             const downloadedData: string = await downloadAttackMap(storageUri, version);
-            // and once it's cached, parse + return it
             result = JSON.parse(downloadedData) as AttackMap;
         } catch (err) {
-            log(`downloadLatestAttackMap() failed due to '${err}'`);
+            log(`downloadRequestedAttackMap() failed due to '${err}'`);
         }
     } catch (err) {
-        log(`downloadLatestAttackMap() failed due to '${err}'`);
+        log(`downloadRequestedAttackMap() failed due to '${err}'`);
     }
     return result;
 }
 
 /*
-    Parse the ATT&CK map version from a filename
+    Download the latest version of the MITRE ATT&CK map - wrapper for backwards compatibility
+*/
+export async function downloadLatestAttackMap(storageUri: vscode.Uri): Promise<AttackMap|undefined> {
+    return downloadRequestedAttackMap(storageUri);
+}
+
+/*
+    Parse the ATT&CK map version from a filename, handling any matrix prefix
 */
 export function extractAttackVersion(fileUri: vscode.Uri): string {
-    return Utils.basename(fileUri).replace('enterprise-attack.', '').replace('.json', '');
+    return Utils.basename(fileUri)
+        .replace(/^(enterprise|mobile|ics)-attack\./, '')
+        .replace('.json', '');
 }
 
 /*
     Get the newest version of the ATT&CK map in the specified cache directory
 */
 export async function getLatestCacheVersion(cacheUri: vscode.Uri): Promise<vscode.Uri|undefined> {
-    const pattern: RegExp = /enterprise-attack\..*\.json/;
+    const pattern: RegExp = /(enterprise|mobile|ics)-attack\..*\.json/;
     let latestVersionPath: vscode.Uri|undefined = undefined;
     try {
         const entries: [string, vscode.FileType][] = await vscode.workspace.fs.readDirectory(cacheUri);
@@ -220,7 +257,9 @@ export async function getLatestCacheVersion(cacheUri: vscode.Uri): Promise<vscod
             return entry[1] === vscode.FileType.File && entry[0].match(pattern);
         }).map((entry: [string, vscode.FileType]) => {
             return entry[0];
-        }).sort().pop();
+        }).sort((a, b) => {
+            return compareVersions(extractAttackVersion(vscode.Uri.file(a)), extractAttackVersion(vscode.Uri.file(b)));
+        }).pop();
         if (latestVersionName !== undefined) {
             latestVersionPath = vscode.Uri.joinPath(cacheUri, latestVersionName);
         }
@@ -228,6 +267,70 @@ export async function getLatestCacheVersion(cacheUri: vscode.Uri): Promise<vscod
         log(`getLatestCacheVersion() failed due to '${err}'`);
     }
     return latestVersionPath;
+}
+
+/*
+    Download a specific matrix's ATT&CK data for a given version
+*/
+export function downloadMatrixData(storageUri: vscode.Uri, version: string, matrixConfig: MatrixConfig): Promise<string> {
+    let downloadedData: string = '';
+    return new Promise<string>(function (resolve, reject) {
+        if (compareVersions(version, matrixConfig.minVersion) < 0) {
+            log(`${matrixConfig.displayName} matrix not available in v${version} (requires v${matrixConfig.minVersion}+)`);
+            resolve(downloadedData);
+            return;
+        }
+        const storagePath: vscode.Uri = vscode.Uri.joinPath(storageUri, `${matrixConfig.type}.${version}.json`);
+        const url = `https://raw.githubusercontent.com/mitre/cti/ATT%26CK-v${version}/${matrixConfig.urlPath}`;
+        const request = https.get(url, (res: IncomingMessage) => {
+            res.setEncoding('utf8');
+            res.on('data', (chunk) => { downloadedData = downloadedData.concat(chunk); });
+            res.on('error', (err: Error) => {
+                log(`Error downloading ${matrixConfig.displayName} ATT&CK v${version}: ${err.message}`);
+                reject(err);
+            });
+            res.on('end', () => {
+                vscode.workspace.fs.writeFile(storagePath, Buffer.from(downloadedData, 'utf-8')).then(() => {
+                    log(`Cached ${matrixConfig.displayName} ATT&CK v${version} @ '${storagePath}'`);
+                }, (reason: any) => {
+                    log(`Error caching ${matrixConfig.displayName} ATT&CK v${version}: ${reason}`);
+                });
+                resolve(downloadedData);
+            });
+        });
+        request.setTimeout(httpTimeout, () => {
+            log(`HTTP timeout downloading ${matrixConfig.displayName} ATT&CK v${version}`);
+            reject('HTTP request timed out');
+        });
+    });
+}
+
+/*
+    Download multiple matrices and merge them into a single AttackMap
+*/
+export async function downloadMultipleMatrices(storageUri: vscode.Uri, version: string, matrices: Array<MatrixConfig>): Promise<AttackMap|undefined> {
+    const allObjects: Array<AttackObject> = [];
+    let specVersion = '2.0';
+    for (const matrixConfig of matrices) {
+        try {
+            const data = await downloadMatrixData(storageUri, version, matrixConfig);
+            if (data && data.length > 0) {
+                const map = JSON.parse(data) as AttackMap;
+                specVersion = map.spec_version || specVersion;
+                const taggedObjects = map.objects.map(obj => ({ ...obj, x_mitre_matrix: matrixConfig.type }));
+                allObjects.push(...taggedObjects);
+            }
+        } catch (err) {
+            log(`Failed to download ${matrixConfig.displayName} matrix: ${err}`);
+        }
+    }
+    if (allObjects.length === 0) { return undefined; }
+    return {
+        type: 'bundle',
+        id: 'bundle--multi-matrix',
+        spec_version: specVersion,
+        objects: allObjects
+    };
 }
 
 /*

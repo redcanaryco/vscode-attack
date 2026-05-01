@@ -1,6 +1,6 @@
 import { StringDecoder } from 'string_decoder';
 import * as vscode from 'vscode';
-import { configSection, debug, setCompletionItemFormat, setDebugLogState } from './configuration';
+import { configSection, attackVersion, debug, getEnabledMatrices, MATRIX_CONFIGS, setAttackVersion, setCompletionItemFormat, setDebugLogState } from './configuration';
 import { log } from './helpers';
 import * as helpers from './helpers';
 import { init as initGroups, register as registerGroups } from './groups';
@@ -44,46 +44,61 @@ const currentProviders = Object.create(Providers);
     Check the given extension context's global storage for the file with name 'filename'
     Retrieve the file if it exists or update the cache with data from the provided URL if the file cannot be found
 */
-export async function cacheData(storageUri: vscode.Uri): Promise<AttackMap|undefined> {
+export async function cacheData(storageUri: vscode.Uri): Promise<{ map: AttackMap; version: string }|undefined> {
     let result: AttackMap|undefined = undefined;
+    let loadedVersion = '';
     log('Checking extension cache for MITRE ATT&CK mapping.');
-    // TODO: Figure out if this will be skipped when storageUri exists
     await vscode.workspace.fs.createDirectory(storageUri);
-    const cachedPath: vscode.Uri|undefined = await helpers.getLatestCacheVersion(storageUri);
-    if (cachedPath === undefined) {
-        // no files found - download the latest version from GitHub
-        log('Nothing found in extension cache. Downloading latest version of MITRE ATT&CK mapping');
-        result = await helpers.downloadLatestAttackMap(storageUri);
-    }
-    else {
-        if (debug) { log(`Using cache path: ${cachedPath}`); }
-        // files found - compare the cached version to the newest version on GitHub
-        // Example: enterprise-attack.8.0.json => 8.0
-        const cachedVersion = helpers.extractAttackVersion(cachedPath);
-        if (debug) { log(`Cached version: ${cachedVersion}`); }
-        try {
-            const availableVersions: Array<string> = await helpers.getVersions();
-            const onlineVersion = `${availableVersions.sort()[availableVersions.length - 1]}`;
-            if (debug) { log(`Online version: ${onlineVersion}`); }
-            if (cachedVersion < onlineVersion) {
-                // if online version is newer than the cached one, download and use the online version
-                vscode.window.showInformationMessage('ATT&CK: Identified a new version of the ATT&CK mapping! Replacing cached version.');
-                log(`Identified a new version of the ATT&CK mapping! Replacing cached map (${cachedVersion}) with downloaded map (${onlineVersion})`);
-                result = await helpers.downloadLatestAttackMap(storageUri);
+    const enabledMatrices = getEnabledMatrices();
+    log(`Enabled matrices: ${enabledMatrices.map(m => m.displayName).join(', ')}`);
+    const requestedVersion = attackVersion === 'latest' ? undefined : attackVersion;
+    try {
+        const availableVersions: Array<string> = await helpers.getVersions();
+        const latestVersion = availableVersions.sort(helpers.compareVersions)[availableVersions.length - 1];
+        const targetVersion = requestedVersion || latestVersion;
+        loadedVersion = targetVersion;
+        if (debug) { log(`Target version: ${targetVersion}`); }
+        // check if all enabled matrices are already cached at the target version
+        let needsDownload = false;
+        const cachedMaps: Array<{ map: AttackMap; config: MatrixConfig }> = [];
+        for (const matrixConfig of enabledMatrices) {
+            if (helpers.compareVersions(targetVersion, matrixConfig.minVersion) < 0) { continue; }
+            const cachedFile = vscode.Uri.joinPath(storageUri, `${matrixConfig.type}.${targetVersion}.json`);
+            try {
+                const contents: Uint8Array = await vscode.workspace.fs.readFile(cachedFile);
+                const map = JSON.parse(new StringDecoder('utf8').end(Buffer.from(contents))) as AttackMap;
+                cachedMaps.push({ map, config: matrixConfig });
+            } catch {
+                needsDownload = true;
+                break;
             }
-            else {
-                // otherwise just use the cached one
-                log(`Nothing to do. Cached version is on latest ATT&CK version ${onlineVersion}`);
-                const contents: Uint8Array = await vscode.workspace.fs.readFile(cachedPath);
-                result = JSON.parse(new StringDecoder('utf8').end(Buffer.from(contents))) as AttackMap;
+        }
+        if (needsDownload) {
+            log(`Downloading ATT&CK v${targetVersion} for ${enabledMatrices.length} matrices`);
+            vscode.window.showInformationMessage(`ATT&CK: Downloading ATT&CK v${targetVersion}.`);
+            result = await helpers.downloadMultipleMatrices(storageUri, targetVersion, enabledMatrices);
+        } else if (cachedMaps.length > 0) {
+            log(`Using cached ATT&CK v${targetVersion} (${cachedMaps.length} matrices)`);
+            const allObjects: Array<AttackObject> = [];
+            for (const { map, config } of cachedMaps) {
+                const tagged = map.objects.map(obj => ({ ...obj, x_mitre_matrix: config.type as MatrixType }));
+                allObjects.push(...tagged);
             }
-        } catch (error) {
-            log(`Could not download ATT&CK version from GitHub. Falling back to cached version ${cachedVersion}.`);
+            result = { type: 'bundle', id: 'bundle--cached', spec_version: cachedMaps[0].map.spec_version, objects: allObjects };
+        } else {
+            result = await helpers.downloadMultipleMatrices(storageUri, targetVersion, enabledMatrices);
+        }
+    } catch (error) {
+        log(`Could not resolve ATT&CK version from GitHub. Attempting fallback to any cached data.`);
+        const cachedPath: vscode.Uri|undefined = await helpers.getLatestCacheVersion(storageUri);
+        if (cachedPath !== undefined) {
+            loadedVersion = helpers.extractAttackVersion(cachedPath);
             const contents: Uint8Array = await vscode.workspace.fs.readFile(cachedPath);
             result = JSON.parse(new StringDecoder('utf8').end(Buffer.from(contents))) as AttackMap;
         }
     }
-    return result;
+    if (result !== undefined) { return { map: result, version: loadedVersion }; }
+    return undefined;
 }
 
 /*
@@ -102,15 +117,15 @@ function toggleStatusBar(statusBarItem: vscode.StatusBarItem, editor: vscode.Tex
 /*
     Create a status bar item that will display the current version of ATT&CK in use
 */
-async function createStatusBar(storageUri: vscode.Uri): Promise<vscode.StatusBarItem|undefined> {
+function createStatusBar(version: string): vscode.StatusBarItem|undefined {
     let statusBarItem: vscode.StatusBarItem|undefined = undefined;
-    const cachedPath: vscode.Uri|undefined = await helpers.getLatestCacheVersion(storageUri);
-    if (cachedPath !== undefined) {
-        const version: string = helpers.extractAttackVersion(cachedPath);
+    if (version) {
         const itemText = `ATT&CK v${version}`;
         statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
         statusBarItem.accessibilityInformation = {label: itemText};
         statusBarItem.text = itemText;
+        statusBarItem.tooltip = 'Click to change ATT&CK version';
+        statusBarItem.command = 'vscode-attack.selectVersion';
         // set a callback for when the user changes the current editor
         vscode.window.onDidChangeActiveTextEditor((editor: vscode.TextEditor|undefined) => {
             if (statusBarItem !== undefined) { toggleStatusBar(statusBarItem, editor); }
@@ -143,6 +158,47 @@ export function registerFeatures(techniques: Array<Technique>, tactics: Array<Ta
     }
 }
 
+let updateCheckTimer: ReturnType<typeof setInterval> | undefined = undefined;
+
+async function checkForUpdates(storageUri: vscode.Uri, silent: boolean): Promise<void> {
+    try {
+        const cachedPath = await helpers.getLatestCacheVersion(storageUri);
+        if (cachedPath === undefined) { return; }
+        const cachedVersion = helpers.extractAttackVersion(cachedPath);
+        const availableVersions = await helpers.getVersions();
+        const latestVersion = availableVersions.sort(helpers.compareVersions)[availableVersions.length - 1];
+        if (helpers.compareVersions(cachedVersion, latestVersion) < 0) {
+            const action = await vscode.window.showInformationMessage(
+                `ATT&CK: New version ${latestVersion} available (current: ${cachedVersion})`,
+                'Update Now', 'Later'
+            );
+            if (action === 'Update Now') {
+                await helpers.downloadRequestedAttackMap(storageUri);
+                vscode.commands.executeCommand('workbench.action.reloadWindow');
+            }
+        } else if (!silent) {
+            vscode.window.showInformationMessage(`ATT&CK: You're on the latest version (${latestVersion})`);
+        }
+    } catch (error) {
+        if (!silent) { log(`Update check failed: ${error}`); }
+    }
+}
+
+function scheduleUpdateChecks(storageUri: vscode.Uri): void {
+    if (updateCheckTimer !== undefined) {
+        clearInterval(updateCheckTimer);
+        updateCheckTimer = undefined;
+    }
+    const interval = vscode.workspace.getConfiguration(configSection).get<string>('updateCheckInterval');
+    let ms: number | undefined;
+    if (interval === 'daily') { ms = 24 * 60 * 60 * 1000; }
+    else if (interval === 'weekly') { ms = 7 * 24 * 60 * 60 * 1000; }
+    if (ms !== undefined) {
+        if (debug) { log(`Scheduling update checks (${interval})`); }
+        updateCheckTimer = setInterval(() => { checkForUpdates(storageUri, true); }, ms);
+    }
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<Record<string, Function> | undefined> {
     // output channel
     helpers.output.clear();
@@ -150,18 +206,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
     // configuration
     setCompletionItemFormat();
     setDebugLogState();
+    setAttackVersion();
     // data
     let groups: Array<Group> = new Array<Group>();
     let mitigations: Array<Mitigation> = new Array<Mitigation>();
     let software: Array<Software> = new Array<Software>();
     let tactics: Array<Tactic> = new Array<Tactic>();
     let techniques: Array<Technique> = new Array<Technique>();
-    const attackData: AttackMap|undefined = await cacheData(context.globalStorageUri);
-    if (attackData === undefined) {
+    const cacheResult = await cacheData(context.globalStorageUri);
+    if (cacheResult === undefined) {
         log('Could not parse ATT&CK data from cache! Please restart the IDE');
         vscode.window.showErrorMessage('ATT&CK: Could not parse ATT&CK data from cache! Please restart the IDE');
     }
     else {
+        const attackData = cacheResult.map;
+        const loadedVersion = cacheResult.version;
         // parse data
         groups = await initGroups(attackData);
         mitigations = await initMitigations(attackData);
@@ -171,12 +230,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
         registerFeatures(techniques, tactics, groups, software, mitigations);
         currentProviders.pushAll(context.subscriptions);
         // regenerate output when configuration has changed
-        context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((e: vscode.ConfigurationChangeEvent) => {
+        context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(async (e: vscode.ConfigurationChangeEvent) => {
             if (e.affectsConfiguration(configSection)) {
                 setDebugLogState();
                 setCompletionItemFormat();
-                registerFeatures(techniques, tactics, groups, software, mitigations);
-                currentProviders.pushAll(context.subscriptions);
+                if (e.affectsConfiguration(`${configSection}.attackVersion`) || e.affectsConfiguration(`${configSection}.matrices`)) {
+                    const action = await vscode.window.showInformationMessage(
+                        'ATT&CK data settings changed. Reload window to apply?', 'Reload', 'Later'
+                    );
+                    if (action === 'Reload') {
+                        vscode.commands.executeCommand('workbench.action.reloadWindow');
+                    }
+                } else if (e.affectsConfiguration(`${configSection}.updateCheckInterval`)) {
+                    scheduleUpdateChecks(context.globalStorageUri);
+                } else {
+                    registerFeatures(techniques, tactics, groups, software, mitigations);
+                    currentProviders.pushAll(context.subscriptions);
+                }
             }
         }));
         if (debug) { log('Registered configuration watcher'); }
@@ -200,8 +270,37 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
             insertLink(editor, groups, mitigations, software, tactics, helpers.getCurrentTechniques(techniques));
         }));
         if (debug) { log('Registered command: vscode-attack.insertLink'); }
+        context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.selectVersion', async () => {
+            try {
+                const availableVersions = await helpers.getVersions();
+                const sorted = availableVersions.sort(helpers.compareVersions).reverse();
+                const allMatrices = Object.values(MATRIX_CONFIGS);
+                const items: vscode.QuickPickItem[] = [
+                    { label: 'latest', description: 'Always use the newest version' },
+                    ...sorted.map(v => {
+                        const matrices = allMatrices
+                            .filter(m => helpers.compareVersions(v, m.minVersion) >= 0)
+                            .map(m => m.displayName);
+                        return { label: v, description: matrices.join(', ') };
+                    })
+                ];
+                const selection = await vscode.window.showQuickPick(items, { placeHolder: 'Select ATT&CK version' });
+                if (selection !== undefined) {
+                    await vscode.workspace.getConfiguration(configSection).update('attackVersion', selection.label, vscode.ConfigurationTarget.Global);
+                }
+            } catch (err) {
+                vscode.window.showErrorMessage(`ATT&CK: Could not fetch version list. ${err}`);
+            }
+        }));
+        if (debug) { log('Registered command: vscode-attack.selectVersion'); }
+        context.subscriptions.push(vscode.commands.registerCommand('vscode-attack.checkForUpdates', async () => {
+            await checkForUpdates(context.globalStorageUri, false);
+        }));
+        if (debug) { log('Registered command: vscode-attack.checkForUpdates'); }
+        // periodic update checks
+        scheduleUpdateChecks(context.globalStorageUri);
         // window
-        const statusBarItem: vscode.StatusBarItem|undefined = await createStatusBar(context.globalStorageUri);
+        const statusBarItem: vscode.StatusBarItem|undefined = createStatusBar(loadedVersion);
         if (statusBarItem !== undefined) {
             context.subscriptions.push(statusBarItem);
             toggleStatusBar(statusBarItem, vscode.window.activeTextEditor);
@@ -220,6 +319,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<Record
 
 // this method is called when your extension is deactivated
 export function deactivate(context: vscode.ExtensionContext): void {
+    if (updateCheckTimer !== undefined) {
+        clearInterval(updateCheckTimer);
+        updateCheckTimer = undefined;
+    }
     context.subscriptions.forEach((disposable: vscode.Disposable) => {
         disposable.dispose();
     });

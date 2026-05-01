@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { completionFormat, configSection, debug } from './configuration';
+import { completionFormat, configSection, debug, getMatrixBadge } from './configuration';
 import { minTermLength, log, tacticRegex } from './helpers';
 
 /*
@@ -37,7 +37,7 @@ function buildTacticDescription(tactic: Tactic, descriptionType: string|undefine
     if (descriptionType === undefined) { descriptionType = vscode.workspace.getConfiguration(configSection).get('description'); }
     const mdBuilder: vscode.MarkdownString = new vscode.MarkdownString(undefined);
     // title
-    mdBuilder.appendMarkdown(`### ${tactic.name}\n`);
+    mdBuilder.appendMarkdown(`### ${tactic.name} ${getMatrixBadge(tactic.matrix)}\n`);
     // source link
     if (tactic.url !== undefined) { mdBuilder.appendMarkdown(`[Source Link](${tactic.url})\n\n`); }
     else { mdBuilder.appendMarkdown(`No source link available\n\n`); }
@@ -59,6 +59,7 @@ export async function init(attackData: AttackMap): Promise<Tactic[]> {
                     long: description
                 },
                 id: '<unknown>',
+                matrix: item.x_mitre_matrix || 'enterprise-attack',
                 name: item.name,
                 url: '<unknown>'
             };

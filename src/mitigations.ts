@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { completionFormat, configSection, debug } from './configuration';
+import { completionFormat, configSection, debug, getMatrixBadge } from './configuration';
 import { minTermLength, log, mitigationRegex } from './helpers';
 
 /*
@@ -39,7 +39,7 @@ function buildMitigationDescription(mitigation: Mitigation, descriptionType: str
     if (descriptionType === undefined) { descriptionType = vscode.workspace.getConfiguration(configSection).get('description'); }
     const mdBuilder: vscode.MarkdownString = new vscode.MarkdownString(undefined);
     // title
-    mdBuilder.appendMarkdown(`### ${mitigation.name}\n`);
+    mdBuilder.appendMarkdown(`### ${mitigation.name} ${getMatrixBadge(mitigation.matrix)}\n`);
     // source link
     if (mitigation.url !== undefined) { mdBuilder.appendMarkdown(`[Source Link](${mitigation.url})\n\n`); }
     else { mdBuilder.appendMarkdown(`No source link available\n\n`); }
@@ -62,6 +62,7 @@ export async function init(attackData: AttackMap): Promise<Array<Mitigation>> {
                     long: description
                 },
                 id: '<unknown>',
+                matrix: item.x_mitre_matrix || 'enterprise-attack',
                 name: item.name,
                 url: '<unknown>'
             };
