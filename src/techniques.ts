@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { completionFormat, configSection, debug } from './configuration';
+import { completionFormat, configSection, debug, getEnabledMatrices, getMatrixBadge } from './configuration';
 import { minTermLength, log, techniqueRegex } from './helpers';
 
 let techniqueCompletionItems: Array<vscode.CompletionItem> = new Array<vscode.CompletionItem>();
@@ -66,7 +66,8 @@ function buildTechniqueDescription(technique: Technique, descriptionType: string
     if (technique.parent !== undefined) { title = `${technique.parent.name}: ${technique.name}`; }
     else { title = `${technique.name}`; }
     if (technique.revoked) { title += ' (REVOKED)'; }
-    mdBuilder.appendMarkdown(`### ${title}\n`);
+    const badge = getMatrixBadge(technique.matrix);
+    mdBuilder.appendMarkdown(`### ${title} ${badge}\n`);
     // source link
     if (technique.url !== undefined) { mdBuilder.appendMarkdown(`[Source Link](${technique.url})\n\n`); }
     else { mdBuilder.appendMarkdown(`No source link available\n\n`); }
@@ -110,9 +111,9 @@ function generateCompletionItems(currentTechniques: Array<Technique>): void {
 */
 export async function init(attackData: AttackMap): Promise<Technique[]> {
     return new Promise((resolve) => {
+        const validKillChains = getEnabledMatrices().map(m => m.killChainName);
         let techniques: Array<Technique> = new Array<Technique>();
         techniques = attackData.objects.filter((item: AttackObject) => {
-            // ignore non-techniques
             return item.type === 'attack-pattern';
         }).map<Technique>((item: AttackObject) => {
             const description: string = item.description !== undefined ? item.description : 'No description available.';
@@ -122,6 +123,7 @@ export async function init(attackData: AttackMap): Promise<Technique[]> {
                     long: description
                 },
                 id: '<unknown>',
+                matrix: item.x_mitre_matrix || 'enterprise-attack',
                 name: item.name,
                 parent: undefined,
                 revoked: item.revoked,
@@ -134,20 +136,19 @@ export async function init(attackData: AttackMap): Promise<Technique[]> {
                 if (reference.source_name === 'mitre-attack') {
                     technique.id = reference.external_id;
                     technique.url = reference.url;
-                    return; // found what we were looking for - no need to iterate over the rest
+                    return;
                 }
             });
             technique.tactics = item.kill_chain_phases?.filter((phase: KillChainPhase) => {
-                return phase.kill_chain_name === 'mitre-attack';
+                return validKillChains.includes(phase.kill_chain_name);
             }).map<string>((phase: KillChainPhase) => { return phase.phase_name; });
             return technique;
         });
-        // now that all the techniques are parsed we can generate the parent relationships for subtechniques
         techniques.forEach((technique: Technique) => {
             if (technique.subtechnique) {
                 const parentTID: string | undefined = technique.id.split('.').shift()?.toString();
                 if (parentTID !== undefined) {
-                    const parent: Technique | undefined = techniques.find((t: Technique) => { return t.id === parentTID; });
+                    const parent: Technique | undefined = techniques.find((t: Technique) => { return t.id === parentTID && t.matrix === technique.matrix; });
                     if (parent !== undefined) {
                         technique.parent = parent;
                     }

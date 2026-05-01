@@ -76,6 +76,7 @@ describe('Command: insertLink', function () {
                 long: 'longer test description'
             },
             id: 'T1059.001',
+            matrix: 'enterprise-attack',
             name: 'PowerShell',
             parent: undefined,
             revoked: false,

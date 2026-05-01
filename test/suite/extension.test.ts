@@ -52,10 +52,10 @@ describe('Extension', function () {
         // copy the ATT&CK map v7.2 into the test cache
         await vscode.workspace.fs.copy(oldMapUri, tmpPath, {overwrite: true});
         // now test cacheData with the same tmp directory, knowing that the file should exist but be older than the latest version
-        const attackMap: AttackMap | undefined = await extension.cacheData(tmpDir);
+        const cacheResult = await extension.cacheData(tmpDir);
         // now check to make sure this is the latest version
-        assert.ok(attackMap !== undefined);
-        assert.strictEqual(helpers.isAttackMapNewer(attackMap, oldMap), true);
+        assert.ok(cacheResult !== undefined);
+        assert.strictEqual(helpers.isAttackMapNewer(cacheResult.map, oldMap), true);
     });
     it.skip('should use a cached version of the ATT&CK map if the online version could not be downloaded', async function () {
         // TODO
@@ -185,6 +185,33 @@ describe('Extension', function () {
         const familiar: Uint8Array = await vscode.workspace.fs.readFile(familiarUri);
         const familiarMap: AttackMap = JSON.parse(new StringDecoder('utf8').end(Buffer.from(familiar)));
         assert.strictEqual(helpers.isAttackMapNewer(prospectiveMap, familiarMap), false);
+    });
+});
+
+describe('Version Comparison', function () {
+    it('compareVersions: should rank higher major versions above lower ones', function () {
+        assert.ok(helpers.compareVersions('16.1', '9.0') > 0);
+        assert.ok(helpers.compareVersions('9.0', '16.1') < 0);
+    });
+    it('compareVersions: should rank higher minor versions above lower ones', function () {
+        assert.ok(helpers.compareVersions('16.1', '16.0') > 0);
+        assert.ok(helpers.compareVersions('16.0', '16.1') < 0);
+    });
+    it('compareVersions: should treat equal versions as equal', function () {
+        assert.strictEqual(helpers.compareVersions('16.1', '16.1'), 0);
+        assert.strictEqual(helpers.compareVersions('9.0', '9.0'), 0);
+    });
+    it('compareVersions: should rank release versions above beta versions', function () {
+        assert.ok(helpers.compareVersions('7.0', '7.0-beta') > 0);
+        assert.ok(helpers.compareVersions('7.0-beta', '7.0') < 0);
+    });
+    it('compareVersions: should treat equal beta versions as equal', function () {
+        assert.strictEqual(helpers.compareVersions('7.0-beta', '7.0-beta'), 0);
+    });
+    it('compareVersions: should correctly sort a realistic version list', function () {
+        const versions = ['9.0', '16.1', '7.0-beta', '15.1', '10.1', '7.0', '1.0'];
+        const sorted = versions.sort(helpers.compareVersions);
+        assert.deepStrictEqual(sorted, ['1.0', '7.0-beta', '7.0', '9.0', '10.1', '15.1', '16.1']);
     });
 });
 
